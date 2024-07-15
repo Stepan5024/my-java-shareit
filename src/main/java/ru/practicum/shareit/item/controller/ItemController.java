@@ -20,16 +20,17 @@ import java.util.List;
 public class ItemController {
 
     private final ItemService itemService;
+    private static final String USER_HEADER = "X-Sharer-User-Id";
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ItemDto addItem(@RequestHeader("X-Sharer-User-Id") Long userId, @Valid @RequestBody ItemDto itemDto) {
+    public ItemDto addItem(@RequestHeader(USER_HEADER) Long userId, @Valid @RequestBody ItemDto itemDto) {
         log.info("Received request to add item for user id: {}", userId);
         return itemService.addItem(userId, itemDto);
     }
 
     @PatchMapping("/{itemId}")
-    public ItemDto updateItem(@RequestHeader("X-Sharer-User-Id") Long userId,
+    public ItemDto updateItem(@RequestHeader(USER_HEADER) Long userId,
                               @PathVariable Long itemId,
                               @RequestBody ItemDto itemDto) {
         log.info("Received request to update item id: {} for user id: {}", itemId, userId);
@@ -43,7 +44,7 @@ public class ItemController {
     }
 
     @GetMapping
-    public List<ItemDto> getItemsByOwner(@RequestHeader("X-Sharer-User-Id") Long userId) {
+    public List<ItemDto> getItemsByOwner(@RequestHeader(USER_HEADER) Long userId) {
         log.info("Received request to get items for owner id: {}", userId);
         return itemService.getItemsByOwner(userId);
     }
