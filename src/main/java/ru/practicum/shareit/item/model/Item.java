@@ -1,6 +1,7 @@
 package ru.practicum.shareit.item.model;
 
 
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -10,24 +11,32 @@ import lombok.NoArgsConstructor;
 import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.user.model.User;
 
+@Entity
+@Table(name = "items")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class Item {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Name cannot be empty")
+    @Column(nullable = false)
     private String name;
 
-    @NotBlank(message = "Description cannot be empty")
+    @Column(nullable = false)
     private String description;
 
-    @NotNull(message = "Availability status cannot be null")
+    @Column(nullable = false)
     private Boolean available;
 
-    @NotNull(message = "Owner cannot be null")
+    @ManyToOne
+    @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
+
+    @ManyToOne
+    @JoinColumn(name = "request_id")
     private ItemRequest request;
 }

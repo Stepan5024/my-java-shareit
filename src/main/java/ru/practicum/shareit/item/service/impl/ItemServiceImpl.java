@@ -9,6 +9,7 @@ import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.mapper.ItemMapper;
 import ru.practicum.shareit.item.exception.InvalidItemDataException;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.item.repository.ItemStorage;
 import ru.practicum.shareit.item.service.ItemService;
 
@@ -16,6 +17,7 @@ import ru.practicum.shareit.item.service.ItemService;
 import ru.practicum.shareit.user.exception.UserNotFoundException;
 import ru.practicum.shareit.user.model.User;
 
+import ru.practicum.shareit.user.repository.UserRepository;
 import ru.practicum.shareit.user.repository.UserStorage;
 
 
@@ -27,14 +29,14 @@ import java.util.stream.Collectors;
 @Service
 public class ItemServiceImpl implements ItemService {
 
-    private final ItemStorage itemStorage;
-    private final UserStorage userStorage;
+    private final ItemRepository itemRepository;
+    private final UserRepository userRepository;
 
 
     @Override
     public ItemDto addItem(Long userId, ItemDto itemDto) {
         log.info("Attempting to add a new item for user id: {}", userId);
-        User owner = userStorage.findById(userId);
+        User owner = userRepository.findById(userId).orElse(null);
         if (owner == null) {
             log.error("User not found with id: {}", userId);
             throw new UserNotFoundException("User not found");
@@ -52,7 +54,7 @@ public class ItemServiceImpl implements ItemService {
             throw new InvalidItemDataException("Item availability status cannot be null");
         }
         Item item = ItemMapper.toEntity(itemDto, owner, null);
-        item = itemStorage.save(item);
+        item = itemRepository.save(item);
         log.info("Successfully added item with id: {}", item.getId());
         return ItemMapper.toDto(item);
     }
@@ -61,7 +63,7 @@ public class ItemServiceImpl implements ItemService {
     public ItemDto updateItem(Long userId, Long itemId, ItemDto itemDto) {
         log.info("Attempting to update item with id: {} for user id: {}", itemId, userId);
 
-        Item item = itemStorage.findById(itemId);
+        Item item = itemRepository.findById(itemId).orElse(null);
         if (item == null || !item.getOwner().getId().equals(userId)) {
             log.error("User is not the owner of the item or item not found for item id: {}", itemId);
             throw new UserNotFoundException("User is not the owner of the item or item not found");
@@ -75,7 +77,7 @@ public class ItemServiceImpl implements ItemService {
         if (itemDto.getAvailable() != null) {
             item.setAvailable(itemDto.getAvailable());
         }
-        item = itemStorage.save(item);
+        item = itemRepository.save(item);
         log.info("Successfully updated item with id: {}", item.getId());
         return ItemMapper.toDto(item);
     }
@@ -83,7 +85,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public ItemDto getItem(Long itemId) {
         log.info("Attempting to retrieve item with id: {}", itemId);
-        Item item = itemStorage.findById(itemId);
+        Item item = itemRepository.findById(itemId).orElse(null);
         log.info("Successfully retrieved item with id: {}", item.getId());
         return ItemMapper.toDto(item);
     }
@@ -91,7 +93,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public List<ItemDto> getItemsByOwner(Long userId) {
         log.info("Attempting to retrieve items for owner with id: {}", userId);
-        List<Item> items = itemStorage.findByOwnerId(userId);
+        List<Item> items = itemRepository.findByOwnerId(userId);
         log.info("Successfully retrieved {} items for owner with id: {}", items.size(), userId);
 
         return items.stream()
@@ -102,7 +104,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public List<ItemDto> searchItems(String text) {
         log.info("Attempting to search items with text: {}", text);
-        List<Item> items = itemStorage.search(text);
+        List<Item> items = itemRepository.search(text);
         log.info("Successfully found {} items matching text: {}", items.size(), text);
         return items.stream()
                 .map(ItemMapper::toDto)
