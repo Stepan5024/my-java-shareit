@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import ru.practicum.shareit.item.dto.ItemDetailsWithBookingDatesDto;
 import ru.practicum.shareit.item.service.ItemService;
 import ru.practicum.shareit.item.dto.ItemDto;
 
@@ -47,6 +48,11 @@ public class ItemController {
     public List<ItemDto> getItemsByOwner(@RequestHeader(USER_HEADER) Long userId) {
         log.info("Received request to get items for owner id: {}", userId);
         return itemService.getItemsByOwner(userId);
+    }
+
+    @GetMapping("/{itemId}/details")
+    public ItemDetailsWithBookingDatesDto getItemDetailsWithBookings(@PathVariable Long itemId) {
+        return itemService.getItemDetailsWithBookings(itemId);
     }
 
     @GetMapping("/search")

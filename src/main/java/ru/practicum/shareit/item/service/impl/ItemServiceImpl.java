@@ -4,10 +4,15 @@ package ru.practicum.shareit.item.service.impl;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.booking.repository.BookingRepository;
+import ru.practicum.shareit.item.dto.ItemDetailsWithBookingDatesDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 
+import ru.practicum.shareit.item.dto.ItemWithBookingDatesDto;
 import ru.practicum.shareit.item.dto.mapper.ItemMapper;
 import ru.practicum.shareit.item.exception.InvalidItemDataException;
+import ru.practicum.shareit.item.exception.ItemNotFoundException;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.item.repository.ItemStorage;
@@ -21,7 +26,10 @@ import ru.practicum.shareit.user.repository.UserRepository;
 import ru.practicum.shareit.user.repository.UserStorage;
 
 
+import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -31,15 +39,14 @@ public class ItemServiceImpl implements ItemService {
 
     private final ItemRepository itemRepository;
     private final UserRepository userRepository;
-
+    private final BookingRepository bookingRepository;
 
     @Override
     public ItemDto addItem(Long userId, ItemDto itemDto) {
         log.info("Attempting to add a new item for user id: {}", userId);
-        User owner = userRepository.findById(userId).orElse(null);
-        if (owner == null) {
-            log.error("User not found with id: {}", userId);
-            throw new UserNotFoundException("User not found");
+        if (itemDto.getAvailable() == null) {
+            log.error("Invalid item data: Item availability status is null");
+            throw new InvalidItemDataException("Item availability status cannot be null");
         }
         if (itemDto.getName() == null || itemDto.getName().isBlank()) {
             log.error("Invalid item data: Item name is empty");
@@ -49,10 +56,14 @@ public class ItemServiceImpl implements ItemService {
             log.error("Invalid item data: Item description is empty");
             throw new InvalidItemDataException("Item description cannot be empty");
         }
-        if (itemDto.getAvailable() == null) {
-            log.error("Invalid item data: Item availability status is null");
-            throw new InvalidItemDataException("Item availability status cannot be null");
+
+        User owner = userRepository.findById(userId).orElse(null);
+        if (owner == null) {
+            log.error("User not found with id: {}", userId);
+            throw new UserNotFoundException("User not found");
         }
+
+
         Item item = ItemMapper.toEntity(itemDto, owner, null);
         item = itemRepository.save(item);
         log.info("Successfully added item with id: {}", item.getId());
@@ -86,8 +97,72 @@ public class ItemServiceImpl implements ItemService {
     public ItemDto getItem(Long itemId) {
         log.info("Attempting to retrieve item with id: {}", itemId);
         Item item = itemRepository.findById(itemId).orElse(null);
+        if (item == null) {
+            log.error("Item not found id: {}", itemId);
+            throw new ItemNotFoundException("Item not found");
+        }
         log.info("Successfully retrieved item with id: {}", item.getId());
         return ItemMapper.toDto(item);
+    }
+
+    @Override
+    public List<ItemDetailsWithBookingDatesDto> getItemsWithBookings() {
+        List<Item> items = itemRepository.findAll();
+        LocalDateTime now = LocalDateTime.now();
+
+        return items.stream()
+                .map(item -> {
+                    // Получение будущих бронирований
+                    List<Booking> futureBookings = bookingRepository.findByItem_IdAndStartAfterOrderByStartAsc(item.getId(), now);
+                    // Получение прошлых бронирований
+                    List<Booking> pastBookings = bookingRepository.findByItem_IdAndEndBeforeOrderByEndDesc(item.getId(), now);
+
+                    // Выборка ближайшего будущего бронирования (если оно есть)
+                    LocalDateTime nextBooking = futureBookings.isEmpty() ? null : futureBookings.get(0).getStart();
+                    // Выборка последнего прошедшего бронирования (если оно есть)
+                    LocalDateTime lastBooking = pastBookings.isEmpty() ? null : pastBookings.get(0).getEnd();
+
+                    return new ItemDetailsWithBookingDatesDto(
+                            item.getId(),
+                            item.getName(),
+                            item.getDescription(),
+                            item.getAvailable(),
+                            nextBooking,
+                            lastBooking
+                    );
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public ItemDetailsWithBookingDatesDto getItemDetailsWithBookings(Long itemId) {
+        Optional<Item> optionalItem = itemRepository.findById(itemId);
+        if (optionalItem.isEmpty()) {
+            // Логика обработки случая, когда Item не найден (например, выброс исключения)
+            throw new RuntimeException("Item not found");
+        }
+
+        Item item = optionalItem.get();
+        LocalDateTime now = LocalDateTime.now();
+
+        // Получение будущих бронирований
+        List<Booking> futureBookings = bookingRepository.findByItem_IdAndStartAfterOrderByStartAsc(itemId, now);
+        // Получение прошлых бронирований
+        List<Booking> pastBookings = bookingRepository.findByItem_IdAndEndBeforeOrderByEndDesc(itemId, now);
+
+        // Выборка ближайшего будущего бронирования (если оно есть)
+        LocalDateTime nextBooking = futureBookings.isEmpty() ? null : futureBookings.get(0).getStart();
+        // Выборка последнего прошедшего бронирования (если оно есть)
+        LocalDateTime lastBooking = pastBookings.isEmpty() ? null : pastBookings.get(0).getEnd();
+
+        return new ItemDetailsWithBookingDatesDto(
+                item.getId(),
+                item.getName(),
+                item.getDescription(),
+                item.getAvailable(),
+                nextBooking,
+                lastBooking
+        );
     }
 
     @Override
@@ -104,6 +179,10 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public List<ItemDto> searchItems(String text) {
         log.info("Attempting to search items with text: {}", text);
+        if (text == null || text.trim().isEmpty()) {
+            log.info("Search text is empty or null, returning empty list.");
+            return Collections.emptyList();
+        }
         List<Item> items = itemRepository.search(text);
         log.info("Successfully found {} items matching text: {}", items.size(), text);
         return items.stream()
