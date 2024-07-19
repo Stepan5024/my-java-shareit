@@ -3,11 +3,13 @@ package ru.practicum.shareit.item.controller;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDetailsWithBookingDatesDto;
 import ru.practicum.shareit.item.service.ItemService;
 import ru.practicum.shareit.item.dto.ItemDto;
@@ -50,16 +52,10 @@ public class ItemController {
         return itemService.getItemsByOwner(userId);
     }
 
-    /*@GetMapping
-    public List<ItemDto> getItems() {
-        log.info("Received request to get items");
-        return itemService.getItems();
-    }
-
-     */
 
     @GetMapping("/{itemId}/details")
     public ItemDetailsWithBookingDatesDto getItemDetailsWithBookings(@PathVariable Long itemId) {
+        log.info("Received request to get item details with bookings for itemId: {}", itemId);
         return itemService.getItemDetailsWithBookings(itemId);
     }
 
@@ -67,5 +63,24 @@ public class ItemController {
     public List<ItemDto> searchItems(@RequestParam String text) {
         log.info("Received request to search items with text: {}", text);
         return itemService.searchItems(text);
+    }
+
+    @PostMapping("/{itemId}/comment")
+    public ResponseEntity<CommentDto> addComment(@PathVariable Long itemId,
+                                                 @RequestHeader("X-Sharer-User-Id") Long userId,
+                                                 @RequestBody CommentDto commentDto) {
+        log.info("Received request to add comment for itemId: {} by userId: {}", itemId, userId);
+
+        CommentDto createdComment = itemService.addComment(itemId, userId, commentDto);
+        return ResponseEntity.ok(createdComment);
+    }
+
+    @GetMapping("/{itemId}/comments")
+    public ResponseEntity<List<CommentDto>> getCommentsByItemId(@PathVariable Long itemId,
+                                                                @RequestHeader("X-Sharer-User-Id") Long userId) {
+        log.info("Received request to get comments for itemId: {}", itemId);
+
+        List<CommentDto> comments = itemService.getCommentsByItemId(itemId, userId);
+        return ResponseEntity.ok(comments);
     }
 }

@@ -8,6 +8,7 @@ import ru.practicum.shareit.booking.model.LastBooking;
 import ru.practicum.shareit.booking.model.NextBooking;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -19,4 +20,5 @@ public class ItemDetailsWithBookingDatesDto {
     private Boolean available;
     private NextBooking nextBooking;
     private LastBooking lastBooking;
+    private List<CommentDto> comments;
 }

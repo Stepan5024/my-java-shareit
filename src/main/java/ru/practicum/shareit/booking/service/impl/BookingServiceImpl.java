@@ -154,26 +154,30 @@ public class BookingServiceImpl implements BookingService {
         try {
             bookingState = BookingStatus.valueOf(state.toUpperCase());
         } catch (IllegalArgumentException e) {
-            log.error("Unknown booking state: {}", state);
+            log.error("getBookings Unknown booking state: {}", state);
             throw new InvalidBookingStatusException("Unknown state: " + state);
         }
-        log.debug("Booking state: {}", bookingState);
+        log.debug("getBookings Booking state: {}", bookingState);
 
         LocalDateTime now = LocalDateTime.now();
         Sort sort = Sort.by(Sort.Order.desc("startDate"));
-        List<Booking> bookings = switch (bookingState) {
-            case CURRENT -> bookingRepository.findByBooker_IdAndStartDateIsBeforeAndEndDateIsAfter(
-                    userId, now, now, sort);
-            case PAST -> bookingRepository.findByBooker_IdAndEndDateIsBefore(
+        Sort sortById = Sort.by(Sort.Order.asc("id"));  // Сортировка по возрастанию id
+        List<Booking> bookings;
+
+        switch (bookingState) {
+            case CURRENT -> bookings = bookingRepository.findByBooker_IdAndStartDateBeforeAndEndDateAfter(
+                    userId, now, now, sortById);
+            case PAST -> bookings = bookingRepository.findByBooker_IdAndEndDateBefore(
                     userId, now, sort);
-            case FUTURE -> bookingRepository.findByBooker_IdAndStartDateIsAfter(
+            case FUTURE -> bookings = bookingRepository.findByBooker_IdAndStartDateAfter(
                     userId, now, sort);
-            case WAITING -> bookingRepository.findByStatusAndBooker_Id(
+            case WAITING -> bookings = bookingRepository.findByStatusAndBooker_Id(
                     BookingStatus.WAITING, userId, sort);
-            case REJECTED -> bookingRepository.findByStatusAndBooker_Id(
+            case REJECTED -> bookings = bookingRepository.findByStatusAndBooker_Id(
                     BookingStatus.REJECTED, userId, sort);
-            default -> bookingRepository.findByBooker_Id(userId, sort);
-        };
+            default -> bookings = bookingRepository.findByBooker_Id(userId, sort);
+        }
+
         log.debug("Found {} bookings for user id: {} with state: {}", bookings.size(), userId, bookingState);
         BookingMapper bookingMapper = new BookingMapper(bookingRepository);
 

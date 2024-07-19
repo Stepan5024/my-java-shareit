@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import ru.practicum.shareit.booking.model.LastBooking;
 import ru.practicum.shareit.booking.model.NextBooking;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -19,4 +21,5 @@ public class ItemDto {
     private Long requestId;
     private NextBooking nextBooking;
     private LastBooking lastBooking;
+    private List<CommentDto> comments;
 }

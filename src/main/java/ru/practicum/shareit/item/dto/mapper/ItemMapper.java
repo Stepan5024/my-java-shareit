@@ -6,15 +6,23 @@ import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.model.LastBooking;
 import ru.practicum.shareit.booking.model.NextBooking;
 import ru.practicum.shareit.booking.repository.BookingRepository;
+import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDetailsWithBookingDatesDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.user.model.User;
 
+import java.util.Collections;
+import java.util.List;
+
 
 public class ItemMapper {
     public static ItemDto toDto(Item item, NextBooking nextBooking, LastBooking lastBooking) {
+        return toDto(item, nextBooking, lastBooking, Collections.emptyList());
+    }
+
+    public static ItemDto toDto(Item item, NextBooking nextBooking, LastBooking lastBooking, List<CommentDto> comments) {
         if (item == null) {
             return null;
         }
@@ -27,7 +35,8 @@ public class ItemMapper {
                 item.getOwner() != null ? item.getOwner().getId() : null,
                 item.getRequest() != null ? item.getRequest().getId() : null,
                 nextBooking,
-                lastBooking
+                lastBooking,
+                comments != null ? comments : Collections.emptyList()
         );
     }
 
@@ -47,7 +56,9 @@ public class ItemMapper {
     }
 
     public static ItemDetailsWithBookingDatesDto toItemDetailsWithBookingDatesDto(Item item,
-                                                                                  LastBooking lastBooking, NextBooking nextBooking) {
+                                                                                  LastBooking lastBooking,
+                                                                                  NextBooking nextBooking,
+                                                                                  List<CommentDto> comments) {
         if (item == null) {
             return null;
         }
@@ -58,7 +69,8 @@ public class ItemMapper {
                 item.getDescription(),
                 item.getIsAvailable(),
                 nextBooking,
-                lastBooking
+                lastBooking,
+                comments
         );
     }
 }
