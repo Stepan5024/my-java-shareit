@@ -1,6 +1,7 @@
 package ru.practicum.shareit.item.dto.mapper;
 
 
+import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.item.dto.ItemDetailsWithBookingDatesDto;
@@ -57,9 +58,9 @@ public class ItemMapper {
         List<Booking> pastBookings = bookingRepository.findByItem_IdAndEndDateBeforeOrderByEndDateDesc(item.getId(), now);
 
         // Выборка ближайшего будущего бронирования (если оно есть)
-        LocalDateTime nextBooking = futureBookings.isEmpty() ? null : futureBookings.getFirst().getStartDate();
+        LocalDateTime nextBooking = futureBookings.isEmpty() ? null : futureBookings.get(0).getStartDate();
         // Выборка последнего прошедшего бронирования (если оно есть)
-        LocalDateTime lastBooking = pastBookings.isEmpty() ? null : pastBookings.getFirst().getEndDate();
+        LocalDateTime lastBooking = pastBookings.isEmpty() ? null : pastBookings.get(0).getEndDate();
 
         return new ItemDetailsWithBookingDatesDto(
                 item.getId(),

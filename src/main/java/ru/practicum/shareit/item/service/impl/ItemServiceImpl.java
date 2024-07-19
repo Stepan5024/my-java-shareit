@@ -4,6 +4,7 @@ package ru.practicum.shareit.item.service.impl;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.item.dto.ItemDetailsWithBookingDatesDto;
@@ -94,15 +95,28 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public ItemDto getItem(Long itemId) {
+    public ItemDetailsWithBookingDatesDto getItem(Long itemId) {
         log.info("Attempting to retrieve item with id: {}", itemId);
-        Item item = itemRepository.findById(itemId).orElse(null);
-        if (item == null) {
-            log.error("Item not found id: {}", itemId);
-            throw new ItemNotFoundException("Item not found");
-        }
+        Item item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new ItemNotFoundException("Item not found"));
+        
+
+        // Создаем DTO с данными о бронированиях
+        ItemDetailsWithBookingDatesDto itemDto = ItemMapper.toItemDetailsWithBookingDatesDto(item, bookingRepository);
+
         log.info("Successfully retrieved item with id: {}", item.getId());
-        return ItemMapper.toDto(item);
+        return itemDto;
+    }
+
+    private BookingDto toBookingDto(Booking booking) {
+        return new BookingDto(
+                booking.getId(),
+                booking.getStartDate(),
+                booking.getEndDate(),
+                booking.getItem().getId(),
+                booking.getBooker().getId(),
+                booking.getStatus()
+        );
     }
 
     @Override
