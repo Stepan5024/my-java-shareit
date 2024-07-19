@@ -39,9 +39,9 @@ public class ItemController {
     }
 
     @GetMapping("/{itemId}")
-    public ItemDetailsWithBookingDatesDto getItem(@PathVariable Long itemId) {
+    public ItemDetailsWithBookingDatesDto getItem(@PathVariable Long itemId, @RequestHeader(USER_HEADER) Long userId) {
         log.info("Received request to get item id: {}", itemId);
-        return itemService.getItem(itemId);
+        return itemService.getItem(itemId, userId);
     }
 
     @GetMapping

@@ -12,7 +12,7 @@ public interface ItemService {
 
     ItemDto updateItem(Long userId, Long itemId, ItemDto itemDto);
 
-    ItemDetailsWithBookingDatesDto getItem(Long itemId);
+    ItemDetailsWithBookingDatesDto getItem(Long itemId, Long userId);
 
     List<ItemDto> getItemsByOwner(Long userId);
 

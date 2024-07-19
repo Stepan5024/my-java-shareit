@@ -13,6 +13,8 @@ import ru.practicum.shareit.booking.exception.BookingNotFoundException;
 import ru.practicum.shareit.booking.exception.InvalidBookingDataException;
 import ru.practicum.shareit.booking.exception.InvalidBookingStatusException;
 import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.booking.model.LastBooking;
+import ru.practicum.shareit.booking.model.NextBooking;
 import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.booking.model.BookingStatus;
 import ru.practicum.shareit.booking.service.BookingService;
@@ -173,9 +175,10 @@ public class BookingServiceImpl implements BookingService {
             default -> bookingRepository.findByBooker_Id(userId, sort);
         };
         log.debug("Found {} bookings for user id: {} with state: {}", bookings.size(), userId, bookingState);
+        BookingMapper bookingMapper = new BookingMapper(bookingRepository);
 
         return bookings.stream()
-                .map(BookingMapper::toResponseDto)
+                .map(bookingMapper::toResponseDto)
                 .collect(Collectors.toList());
     }
 
@@ -187,44 +190,74 @@ public class BookingServiceImpl implements BookingService {
         try {
             bookingState = BookingStatus.valueOf(state.toUpperCase());
         } catch (IllegalArgumentException e) {
-            log.error("getOwnerBookings Unknown booking state: {}", state);
+            log.error("Unknown booking state: {}", state);
             throw new InvalidBookingStatusException("Unknown state: " + state);
         }
-        log.debug("getOwnerBookings Booking state: {}", bookingState);
+        log.debug("Booking state: {}", bookingState);
 
-        User booker = userRepository.findById(ownerId)
+        // Проверка существования владельца
+        User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> {
                     log.error("User not found with ownerId: {}", ownerId);
                     return new UserNotFoundException("User not found");
                 });
-        log.debug("Owner found: {}", booker);
+        log.debug("Owner found: {}", owner);
 
         LocalDateTime now = LocalDateTime.now();
         Sort sort = Sort.by(Sort.Order.desc("startDate"));
+
+        // Получение списка вещей, принадлежащих владельцу
+        List<Item> itemsOwnedByOwner = itemRepository.findByOwnerId(ownerId);
+        List<Long> ownedItemIds = itemsOwnedByOwner.stream()
+                .map(Item::getId)
+                .collect(Collectors.toList());
+
+        // Получение бронирований для вещей, принадлежащих владельцу
         List<Booking> bookings = switch (bookingState) {
-            case CURRENT -> bookingRepository.findByItem_Owner_IdAndStartDateIsBeforeAndEndDateIsAfter(
-                    ownerId, now, now, sort);
-            case PAST -> bookingRepository.findByItem_Owner_IdAndEndDateIsBefore(
-                    ownerId, now, sort);
-            case FUTURE -> bookingRepository.findByItem_Owner_IdAndStartDateIsAfter(
-                    ownerId, now, sort);
-            case WAITING -> bookingRepository.findByStatus(WAITING, sort);
-            case REJECTED -> bookingRepository.findByStatus(REJECTED, sort);
-            default -> bookingRepository.findByItem_Owner_Id(ownerId, sort);
+            case CURRENT -> bookingRepository.findByItem_IdInAndStartDateIsBeforeAndEndDateIsAfter(
+                    ownedItemIds, now, now, sort);
+            case PAST -> bookingRepository.findByItem_IdInAndEndDateIsBefore(
+                    ownedItemIds, now, sort);
+            case FUTURE -> bookingRepository.findByItem_IdInAndStartDateIsAfter(
+                    ownedItemIds, now, sort);
+            case WAITING -> bookingRepository.findByStatusAndItem_IdIn(
+                    WAITING, ownedItemIds, sort);
+            case REJECTED -> bookingRepository.findByStatusAndItem_IdIn(
+                    REJECTED, ownedItemIds, sort);
+            default -> bookingRepository.findByItem_IdIn(ownedItemIds, sort);
         };
+
         log.debug("Found {} bookings for owner id: {} with state: {}", bookings.size(), ownerId, bookingState);
 
+        BookingMapper bookingMapper = new BookingMapper(bookingRepository);
+
         return bookings.stream()
-                .map(BookingMapper::toResponseDto)
+                .map(bookingMapper::toResponseDto)
                 .collect(Collectors.toList());
     }
 
     private BookingResponseDto toBookingResponseDto(Booking booking) {
+        Item item = booking.getItem();
+        LocalDateTime now = LocalDateTime.now();
+
+        Booking nextBookingEntity = bookingRepository.findByItem_IdAndStartDateAfterOrderByStartDateAsc(item.getId(), now)
+                .stream()
+                .findFirst()
+                .orElse(null);
+
+        Booking lastBookingEntity = bookingRepository.findByItem_IdAndEndDateBeforeOrderByEndDateDesc(item.getId(), now)
+                .stream()
+                .findFirst()
+                .orElse(null);
+
+        NextBooking nextBooking = nextBookingEntity != null ? new NextBooking(nextBookingEntity.getId(), nextBookingEntity.getBooker().getId()) : null;
+        LastBooking lastBooking = lastBookingEntity != null ? new LastBooking(lastBookingEntity.getId(), lastBookingEntity.getBooker().getId()) : null;
+
         return new BookingResponseDto(
                 booking.getId(),
                 booking.getStartDate(),
                 booking.getEndDate(),
-                ItemMapper.toDto(booking.getItem()),
+                ItemMapper.toDto(item, nextBooking, lastBooking),
                 UserMapper.toDto(booking.getBooker()),
                 booking.getStatus()
         );

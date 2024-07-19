@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.booking.model.LastBooking;
+import ru.practicum.shareit.booking.model.NextBooking;
 import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.item.dto.ItemDetailsWithBookingDatesDto;
 import ru.practicum.shareit.item.dto.ItemDto;
@@ -68,7 +70,7 @@ public class ItemServiceImpl implements ItemService {
         Item item = ItemMapper.toEntity(itemDto, owner, null);
         item = itemRepository.save(item);
         log.info("Successfully added item with id: {}", item.getId());
-        return ItemMapper.toDto(item);
+        return ItemMapper.toDto(item, null, null);
     }
 
     @Override
@@ -90,19 +92,56 @@ public class ItemServiceImpl implements ItemService {
             item.setIsAvailable(itemDto.getAvailable());
         }
         item = itemRepository.save(item);
+
+        LocalDateTime now = LocalDateTime.now();
+        Booking lastBookingEntity = bookingRepository.findByItem_IdAndEndDateBeforeOrderByEndDateDesc(itemId, now)
+                .stream()
+                .findFirst()
+                .orElse(null);
+
+        Booking nextBookingEntity = bookingRepository.findByItem_IdAndStartDateAfterOrderByStartDateAsc(itemId, now)
+                .stream()
+                .findFirst()
+                .orElse(null);
+
+        LastBooking lastBooking = lastBookingEntity != null ? new LastBooking(lastBookingEntity.getId(), lastBookingEntity.getBooker().getId()) : null;
+        NextBooking nextBooking = nextBookingEntity != null ? new NextBooking(nextBookingEntity.getId(), nextBookingEntity.getBooker().getId()) : null;
+
+
+
         log.info("Successfully updated item with id: {}", item.getId());
-        return ItemMapper.toDto(item);
+        return ItemMapper.toDto(item, nextBooking, lastBooking);
     }
 
     @Override
-    public ItemDetailsWithBookingDatesDto getItem(Long itemId) {
+    public ItemDetailsWithBookingDatesDto getItem(Long itemId, Long userId) {
         log.info("Attempting to retrieve item with id: {}", itemId);
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new ItemNotFoundException("Item not found"));
-        
 
-        // Создаем DTO с данными о бронированиях
-        ItemDetailsWithBookingDatesDto itemDto = ItemMapper.toItemDetailsWithBookingDatesDto(item, bookingRepository);
+        LocalDateTime now = LocalDateTime.now();
+        Booking lastBookingEntity = null;
+        Booking nextBookingEntity = null;
+        LastBooking lastBooking = null;
+        NextBooking nextBooking = null;
+
+        // Проверка, является ли текущий пользователь владельцем предмета
+        if (item.getOwner().getId().equals(userId)) {
+            lastBookingEntity = bookingRepository.findByItem_IdAndEndDateBeforeOrderByEndDateDesc(itemId, now)
+                    .stream()
+                    .findFirst()
+                    .orElse(null);
+
+            nextBookingEntity = bookingRepository.findByItem_IdAndStartDateAfterOrderByStartDateAsc(itemId, now)
+                    .stream()
+                    .findFirst()
+                    .orElse(null);
+
+            lastBooking = lastBookingEntity != null ? new LastBooking(lastBookingEntity.getId(), lastBookingEntity.getBooker().getId()) : null;
+            nextBooking = nextBookingEntity != null ? new NextBooking(nextBookingEntity.getId(), nextBookingEntity.getBooker().getId()) : null;
+        }
+
+        ItemDetailsWithBookingDatesDto itemDto = ItemMapper.toItemDetailsWithBookingDatesDto(item, lastBooking, nextBooking);
 
         log.info("Successfully retrieved item with id: {}", item.getId());
         return itemDto;
@@ -131,10 +170,10 @@ public class ItemServiceImpl implements ItemService {
                     // Получение прошлых бронирований
                     List<Booking> pastBookings = bookingRepository.findByItem_IdAndEndDateBeforeOrderByEndDateDesc(item.getId(), now);
 
-                    // Выборка ближайшего будущего бронирования (если оно есть)
-                    LocalDateTime nextBooking = futureBookings.isEmpty() ? null : futureBookings.getFirst().getStartDate();
-                    // Выборка последнего прошедшего бронирования (если оно есть)
-                    LocalDateTime lastBooking = pastBookings.isEmpty() ? null : pastBookings.getFirst().getEndDate();
+                    // Создание объекта ближайшего будущего бронирования (если оно есть)
+                    NextBooking nextBooking = futureBookings.isEmpty() ? null : new NextBooking(futureBookings.get(0).getId(), futureBookings.get(0).getBooker().getId());
+                    // Создание объекта последнего прошедшего бронирования (если оно есть)
+                    LastBooking lastBooking = pastBookings.isEmpty() ? null : new LastBooking(pastBookings.get(0).getId(), pastBookings.get(0).getBooker().getId());
 
                     return new ItemDetailsWithBookingDatesDto(
                             item.getId(),
@@ -164,19 +203,23 @@ public class ItemServiceImpl implements ItemService {
         // Получение прошлых бронирований
         List<Booking> pastBookings = bookingRepository.findByItem_IdAndEndDateBeforeOrderByEndDateDesc(itemId, now);
 
-        // Выборка ближайшего будущего бронирования (если оно есть)
-        LocalDateTime nextBooking = futureBookings.isEmpty() ? null : futureBookings.getFirst().getStartDate();
-        // Выборка последнего прошедшего бронирования (если оно есть)
-        LocalDateTime lastBooking = pastBookings.isEmpty() ? null : pastBookings.getFirst().getEndDate();
+        Booking lastBookingEntity = bookingRepository.findByItem_IdAndEndDateBeforeOrderByEndDateDesc(itemId, now)
+                .stream()
+                .findFirst()
+                .orElse(null);
 
-        return new ItemDetailsWithBookingDatesDto(
-                item.getId(),
-                item.getName(),
-                item.getDescription(),
-                item.getIsAvailable(),
-                nextBooking,
-                lastBooking
-        );
+        Booking nextBookingEntity = bookingRepository.findByItem_IdAndStartDateAfterOrderByStartDateAsc(itemId, now)
+                .stream()
+                .findFirst()
+                .orElse(null);
+
+        LastBooking lastBooking = lastBookingEntity != null ? new LastBooking(lastBookingEntity.getId(), lastBookingEntity.getBooker().getId()) : null;
+        NextBooking nextBooking = nextBookingEntity != null ? new NextBooking(nextBookingEntity.getId(), nextBookingEntity.getBooker().getId()) : null;
+
+        ItemDetailsWithBookingDatesDto itemDto = ItemMapper.toItemDetailsWithBookingDatesDto(item, lastBooking, nextBooking);
+
+        log.info("getItemDetailsWithBookings Successfully retrieved item with id: {}", item.getId());
+        return itemDto;
     }
 
     @Override
@@ -185,8 +228,35 @@ public class ItemServiceImpl implements ItemService {
         List<Item> items = itemRepository.findByOwnerId(userId);
         log.info("Successfully retrieved {} items for owner with id: {}", items.size(), userId);
 
+        LocalDateTime now = LocalDateTime.now();
+
         return items.stream()
-                .map(ItemMapper::toDto)
+                .map(item -> {
+                    // Получение будущих бронирований
+                    List<Booking> futureBookings = bookingRepository.findByItem_IdAndStartDateAfterOrderByStartDateAsc(item.getId(), now);
+                    // Получение прошлых бронирований
+                    List<Booking> pastBookings = bookingRepository.findByItem_IdAndEndDateBeforeOrderByEndDateDesc(item.getId(), now);
+
+                    // Выборка ближайшего будущего бронирования (если оно есть)
+                    NextBooking nextBooking = futureBookings.isEmpty() ? null : new NextBooking(futureBookings.get(0).getId(), futureBookings.get(0).getBooker().getId());
+                    // Выборка последнего прошедшего бронирования (если оно есть)
+                    LastBooking lastBooking = pastBookings.isEmpty() ? null : new LastBooking(pastBookings.get(0).getId(), pastBookings.get(0).getBooker().getId());
+
+                    // Проверка на null для request и owner
+                    Long requestId = item.getRequest() != null ? item.getRequest().getId() : null;
+                    Long ownerId = item.getOwner() != null ? item.getOwner().getId() : null;
+
+                    return new ItemDto(
+                            item.getId(),
+                            item.getName(),
+                            item.getDescription(),
+                            item.getIsAvailable(),
+                            ownerId,
+                            requestId,
+                            nextBooking,
+                            lastBooking
+                    );
+                })
                 .collect(Collectors.toList());
     }
 
@@ -197,7 +267,7 @@ public class ItemServiceImpl implements ItemService {
 
         // Преобразование списка Item в список ItemDto
         return items.stream()
-                .map(ItemMapper::toDto)
+                .map(item -> ItemMapper.toDto(item, null, null))
                 .collect(Collectors.toList());
     }
 
@@ -211,7 +281,7 @@ public class ItemServiceImpl implements ItemService {
         List<Item> items = itemRepository.search(text);
         log.info("Successfully found {} items matching text: {}", items.size(), text);
         return items.stream()
-                .map(ItemMapper::toDto)
+                .map(item -> ItemMapper.toDto(item, null, null))
                 .collect(Collectors.toList());
     }
 }
