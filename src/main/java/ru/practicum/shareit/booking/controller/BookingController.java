@@ -5,7 +5,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.booking.dto.BookingRequestDto;
@@ -30,26 +29,33 @@ public class BookingController {
     }
 
     @PatchMapping("/{bookingId}")
-    public ResponseEntity<BookingResponseDto> updateBookingStatus(@PathVariable Long bookingId, @RequestParam Boolean approved) {
-        BookingResponseDto bookingResponseDto = bookingService.updateBookingStatus(bookingId, approved);
+    public ResponseEntity<BookingResponseDto> updateBookingStatus(@PathVariable Long bookingId,
+                                                                  @RequestParam Boolean approved,
+                                                                  @RequestHeader(USER_HEADER) Long userId) {
+        BookingResponseDto bookingResponseDto = bookingService.updateBookingStatus(bookingId, userId, approved);
         return ResponseEntity.ok(bookingResponseDto);
     }
 
     @GetMapping("/{bookingId}")
-    public ResponseEntity<BookingResponseDto> getBooking(@PathVariable Long bookingId) {
-        BookingResponseDto bookingResponseDto = bookingService.getBooking(bookingId);
+    public ResponseEntity<BookingResponseDto> getBooking(@PathVariable Long bookingId,
+                                                         @RequestHeader(USER_HEADER) Long userId) {
+        BookingResponseDto bookingResponseDto = bookingService.getBooking(userId, bookingId);
         return ResponseEntity.ok(bookingResponseDto);
     }
 
     @GetMapping
-    public ResponseEntity<List<BookingResponseDto>> getBookings(@RequestParam(required = false, defaultValue = "ALL") String state) {
-        List<BookingResponseDto> bookings = bookingService.getBookings(state);
+    public ResponseEntity<List<BookingResponseDto>> getBookings(
+            @RequestParam(required = false, defaultValue = "ALL") String state,
+            @RequestHeader(USER_HEADER) Long userId) {
+        List<BookingResponseDto> bookings = bookingService.getBookings(userId, state);
         return ResponseEntity.ok(bookings);
     }
 
     @GetMapping("/owner")
-    public ResponseEntity<List<BookingResponseDto>> getOwnerBookings(@RequestParam(required = false, defaultValue = "ALL") String state) {
-        List<BookingResponseDto> bookings = bookingService.getOwnerBookings(state);
+    public ResponseEntity<List<BookingResponseDto>> getOwnerBookings(
+            @RequestParam(required = false, defaultValue = "ALL") String state,
+            @RequestHeader(USER_HEADER) Long ownerId) {
+        List<BookingResponseDto> bookings = bookingService.getOwnerBookings(ownerId, state);
         return ResponseEntity.ok(bookings);
     }
 }

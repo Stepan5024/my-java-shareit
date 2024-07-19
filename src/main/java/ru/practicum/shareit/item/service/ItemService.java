@@ -15,6 +15,8 @@ public interface ItemService {
 
     List<ItemDto> getItemsByOwner(Long userId);
 
+    List<ItemDto> getItems();
+
     List<ItemDto> searchItems(String text);
 
     List<ItemDetailsWithBookingDatesDto> getItemsWithBookings();

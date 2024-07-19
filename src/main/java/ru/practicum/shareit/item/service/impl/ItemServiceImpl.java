@@ -113,14 +113,14 @@ public class ItemServiceImpl implements ItemService {
         return items.stream()
                 .map(item -> {
                     // Получение будущих бронирований
-                    List<Booking> futureBookings = bookingRepository.findByItem_IdAndStartAfterOrderByStartAsc(item.getId(), now);
+                    List<Booking> futureBookings = bookingRepository.findByItem_IdAndStartDateAfterOrderByStartDateAsc(item.getId(), now);
                     // Получение прошлых бронирований
-                    List<Booking> pastBookings = bookingRepository.findByItem_IdAndEndBeforeOrderByEndDesc(item.getId(), now);
+                    List<Booking> pastBookings = bookingRepository.findByItem_IdAndEndDateBeforeOrderByEndDateDesc(item.getId(), now);
 
                     // Выборка ближайшего будущего бронирования (если оно есть)
-                    LocalDateTime nextBooking = futureBookings.isEmpty() ? null : futureBookings.get(0).getStart();
+                    LocalDateTime nextBooking = futureBookings.isEmpty() ? null : futureBookings.getFirst().getStartDate();
                     // Выборка последнего прошедшего бронирования (если оно есть)
-                    LocalDateTime lastBooking = pastBookings.isEmpty() ? null : pastBookings.get(0).getEnd();
+                    LocalDateTime lastBooking = pastBookings.isEmpty() ? null : pastBookings.getFirst().getEndDate();
 
                     return new ItemDetailsWithBookingDatesDto(
                             item.getId(),
@@ -146,14 +146,14 @@ public class ItemServiceImpl implements ItemService {
         LocalDateTime now = LocalDateTime.now();
 
         // Получение будущих бронирований
-        List<Booking> futureBookings = bookingRepository.findByItem_IdAndStartAfterOrderByStartAsc(itemId, now);
+        List<Booking> futureBookings = bookingRepository.findByItem_IdAndStartDateAfterOrderByStartDateAsc(itemId, now);
         // Получение прошлых бронирований
-        List<Booking> pastBookings = bookingRepository.findByItem_IdAndEndBeforeOrderByEndDesc(itemId, now);
+        List<Booking> pastBookings = bookingRepository.findByItem_IdAndEndDateBeforeOrderByEndDateDesc(itemId, now);
 
         // Выборка ближайшего будущего бронирования (если оно есть)
-        LocalDateTime nextBooking = futureBookings.isEmpty() ? null : futureBookings.get(0).getStart();
+        LocalDateTime nextBooking = futureBookings.isEmpty() ? null : futureBookings.getFirst().getStartDate();
         // Выборка последнего прошедшего бронирования (если оно есть)
-        LocalDateTime lastBooking = pastBookings.isEmpty() ? null : pastBookings.get(0).getEnd();
+        LocalDateTime lastBooking = pastBookings.isEmpty() ? null : pastBookings.getFirst().getEndDate();
 
         return new ItemDetailsWithBookingDatesDto(
                 item.getId(),
@@ -171,6 +171,17 @@ public class ItemServiceImpl implements ItemService {
         List<Item> items = itemRepository.findByOwnerId(userId);
         log.info("Successfully retrieved {} items for owner with id: {}", items.size(), userId);
 
+        return items.stream()
+                .map(ItemMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ItemDto> getItems() {
+        List<Item> items = itemRepository.findAll();
+        log.debug("Fetched {} items from the repository", items.size());
+
+        // Преобразование списка Item в список ItemDto
         return items.stream()
                 .map(ItemMapper::toDto)
                 .collect(Collectors.toList());

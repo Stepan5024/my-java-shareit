@@ -9,12 +9,12 @@ import java.util.List;
 public interface BookingService {
     BookingResponseDto addBooking(BookingRequestDto bookingRequestDto);
 
-    BookingResponseDto updateBookingStatus(Long bookingId, Boolean approved);
+    BookingResponseDto updateBookingStatus(Long bookingId, Long userId, Boolean approved);
 
-    BookingResponseDto getBooking(Long bookingId);
+    BookingResponseDto getBooking(Long userId, Long bookingId);
 
-    List<BookingResponseDto> getBookings(String state);
+    List<BookingResponseDto> getBookings(Long userId, String state);
 
-    List<BookingResponseDto> getOwnerBookings(String state);
+    List<BookingResponseDto> getOwnerBookings(Long bookerId, String state);
     List<Booking> findBookingsByItemId(Long itemId);
 }

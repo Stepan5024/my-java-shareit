@@ -50,6 +50,14 @@ public class ItemController {
         return itemService.getItemsByOwner(userId);
     }
 
+    /*@GetMapping
+    public List<ItemDto> getItems() {
+        log.info("Received request to get items");
+        return itemService.getItems();
+    }
+
+     */
+
     @GetMapping("/{itemId}/details")
     public ItemDetailsWithBookingDatesDto getItemDetailsWithBookings(@PathVariable Long itemId) {
         return itemService.getItemDetailsWithBookings(itemId);

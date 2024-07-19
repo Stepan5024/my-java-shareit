@@ -24,12 +24,10 @@ public class Booking {
     private Long id;
 
     @NotNull(message = "Start date and time cannot be null")
-    @FutureOrPresent(message = "Start date and time must be in the present or future")
-    private LocalDateTime start;
+    private LocalDateTime startDate;
 
     @NotNull(message = "End date and time cannot be null")
-    @FutureOrPresent(message = "End date and time must be in the present or future")
-    private LocalDateTime end;
+    private LocalDateTime endDate;
 
     @NotNull(message = "Item cannot be null")
     @ManyToOne

@@ -43,7 +43,8 @@ public class ItemMapper {
                 .build();
     }
 
-    public static ItemDetailsWithBookingDatesDto toItemDetailsWithBookingDatesDto(Item item, BookingRepository bookingRepository) {
+    public static ItemDetailsWithBookingDatesDto toItemDetailsWithBookingDatesDto(Item item,
+                                                                                  BookingRepository bookingRepository) {
         if (item == null) {
             return null;
         }
@@ -51,14 +52,14 @@ public class ItemMapper {
         LocalDateTime now = LocalDateTime.now();
 
         // Получение будущих бронирований
-        List<Booking> futureBookings = bookingRepository.findByItem_IdAndStartAfterOrderByStartAsc(item.getId(), now);
+        List<Booking> futureBookings = bookingRepository.findByItem_IdAndStartDateAfterOrderByStartDateAsc(item.getId(), now);
         // Получение прошлых бронирований
-        List<Booking> pastBookings = bookingRepository.findByItem_IdAndEndBeforeOrderByEndDesc(item.getId(), now);
+        List<Booking> pastBookings = bookingRepository.findByItem_IdAndEndDateBeforeOrderByEndDateDesc(item.getId(), now);
 
         // Выборка ближайшего будущего бронирования (если оно есть)
-        LocalDateTime nextBooking = futureBookings.isEmpty() ? null : futureBookings.get(0).getStart();
+        LocalDateTime nextBooking = futureBookings.isEmpty() ? null : futureBookings.getFirst().getStartDate();
         // Выборка последнего прошедшего бронирования (если оно есть)
-        LocalDateTime lastBooking = pastBookings.isEmpty() ? null : pastBookings.get(0).getEnd();
+        LocalDateTime lastBooking = pastBookings.isEmpty() ? null : pastBookings.getFirst().getEndDate();
 
         return new ItemDetailsWithBookingDatesDto(
                 item.getId(),
