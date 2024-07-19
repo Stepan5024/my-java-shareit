@@ -8,6 +8,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
+import ru.practicum.shareit.booking.exception.BookingIsNotAvailableException;
+import ru.practicum.shareit.booking.exception.InvalidBookingDataException;
 import ru.practicum.shareit.item.exception.InvalidItemDataException;
 import ru.practicum.shareit.item.exception.ItemNotFoundException;
 import ru.practicum.shareit.user.exception.InvalidUserDataException;
@@ -66,7 +68,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(InvalidItemDataException.class)
-    public ResponseEntity<Object> handleInvalidItemDataException(InvalidItemDataException ex, WebRequest request) {
+    public ResponseEntity<Object> handleInvalidItemDataException(InvalidItemDataException ex,
+                                                                 WebRequest request) {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("status", HttpStatus.BAD_REQUEST.value());
@@ -78,7 +81,34 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(InvalidUserDataException.class)
-    public ResponseEntity<Object> handleInvalidUserDataException(InvalidUserDataException ex, WebRequest request) {
+    public ResponseEntity<Object> handleInvalidUserDataException(InvalidUserDataException ex,
+                                                                 WebRequest request) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.BAD_REQUEST.value());
+        body.put("error", "Bad Request");
+        body.put("message", ex.getMessage());
+        body.put("path", request.getDescription(false).substring(4));
+
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(BookingIsNotAvailableException.class)
+    public ResponseEntity<Object> handleBookingItemNotAvailableException(BookingIsNotAvailableException ex,
+                                                                                WebRequest request) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.BAD_REQUEST.value());
+        body.put("error", "Bad Request");
+        body.put("message", ex.getMessage());
+        body.put("path", request.getDescription(false).substring(4));
+
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(InvalidBookingDataException.class)
+    public ResponseEntity<Object> handleInvalidBookingDataException(InvalidBookingDataException ex,
+                                                                    WebRequest request) {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("status", HttpStatus.BAD_REQUEST.value());

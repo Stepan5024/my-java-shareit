@@ -1,5 +1,6 @@
 package ru.practicum.shareit.booking.controller;
 
+import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -14,16 +15,16 @@ import ru.practicum.shareit.booking.service.BookingService;
 import java.util.List;
 
 @RestController
+@AllArgsConstructor
 @RequestMapping("/bookings")
 public class BookingController {
     private final BookingService bookingService;
-
-    public BookingController(BookingService bookingService) {
-        this.bookingService = bookingService;
-    }
+    private static final String USER_HEADER = "X-Sharer-User-Id";
 
     @PostMapping
-    public ResponseEntity<BookingResponseDto> addBooking(@RequestBody BookingRequestDto bookingRequestDto) {
+    public ResponseEntity<BookingResponseDto> addBooking(@RequestBody BookingRequestDto bookingRequestDto,
+                                                         @RequestHeader(USER_HEADER) Long bookerId) {
+        bookingRequestDto.setBookerId(bookerId);
         BookingResponseDto bookingResponseDto = bookingService.addBooking(bookingRequestDto);
         return ResponseEntity.ok(bookingResponseDto);
     }

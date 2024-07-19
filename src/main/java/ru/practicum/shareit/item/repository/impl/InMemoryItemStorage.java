@@ -47,7 +47,7 @@ public class InMemoryItemStorage implements ItemStorage {
         return items.values().stream()
                 .filter(item -> (item.getName().toLowerCase().contains(searchText) ||
                         item.getDescription().toLowerCase().contains(searchText)) &&
-                        Boolean.TRUE.equals(item.getAvailable()))
+                        Boolean.TRUE.equals(item.getIsAvailable()))
                 .collect(Collectors.toList());
     }
 }

@@ -43,5 +43,6 @@ public class Booking {
 
     @NotNull(message = "Status cannot be null")
     @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
     private BookingStatus status;
 }

@@ -1,6 +1,7 @@
 package ru.practicum.shareit.user.service.impl;
 
 
+import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,13 +30,10 @@ public class UserServiceImpl implements UserService {
     private final AtomicLong currentId = new AtomicLong(0);
 
     @Override
+    @Transactional
     public UserDto addUser(UserDto userDto) {
         log.info("Attempting to add a new user with email: {}", userDto.getEmail());
-        if (userRepository.existsByEmail(userDto.getEmail())) {
-            log.error("Failed to add user: Email cannot be empty");
-            incrementId();
-            throw new EmailAlreadyExistsException("Email already exists");
-        }
+
         if (userDto.getEmail() == null || userDto.getEmail().isBlank()) {
             log.error("Failed to add user: Email already exists");
             throw new InvalidUserDataException("Email cannot be empty");
@@ -58,11 +56,13 @@ public class UserServiceImpl implements UserService {
             user.setName(userDto.getName());
         }
         if (userDto.getEmail() != null && !userDto.getEmail().equals(user.getEmail())) {
-            if (userRepository.existsByEmail(userDto.getEmail())) {
+            /*if (userRepository.existsByEmail(userDto.getEmail())) {
                 log.error("Failed to update user: Email already exists");
                 incrementId();
                 throw new EmailAlreadyExistsException("Email already exists");
             }
+
+             */
             user.setEmail(userDto.getEmail());
         }
         user = userRepository.save(user);

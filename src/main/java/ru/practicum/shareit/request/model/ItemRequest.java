@@ -13,7 +13,7 @@ import ru.practicum.shareit.user.model.User;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "item_request")
+@Table(name = "item_requests")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

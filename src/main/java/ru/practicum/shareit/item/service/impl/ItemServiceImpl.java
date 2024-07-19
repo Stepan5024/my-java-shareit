@@ -86,7 +86,7 @@ public class ItemServiceImpl implements ItemService {
             item.setDescription(itemDto.getDescription());
         }
         if (itemDto.getAvailable() != null) {
-            item.setAvailable(itemDto.getAvailable());
+            item.setIsAvailable(itemDto.getAvailable());
         }
         item = itemRepository.save(item);
         log.info("Successfully updated item with id: {}", item.getId());
@@ -126,7 +126,7 @@ public class ItemServiceImpl implements ItemService {
                             item.getId(),
                             item.getName(),
                             item.getDescription(),
-                            item.getAvailable(),
+                            item.getIsAvailable(),
                             nextBooking,
                             lastBooking
                     );
@@ -159,7 +159,7 @@ public class ItemServiceImpl implements ItemService {
                 item.getId(),
                 item.getName(),
                 item.getDescription(),
-                item.getAvailable(),
+                item.getIsAvailable(),
                 nextBooking,
                 lastBooking
         );
