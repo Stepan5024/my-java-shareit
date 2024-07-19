@@ -1,5 +1,6 @@
 package ru.practicum.shareit.item.service;
 
+import ru.practicum.shareit.comment.model.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDetailsWithBookingDatesDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemWithBookingDatesDto;
@@ -22,4 +23,5 @@ public interface ItemService {
     List<ItemDetailsWithBookingDatesDto> getItemsWithBookings();
 
     ItemDetailsWithBookingDatesDto getItemDetailsWithBookings(Long itemId);
+
 }
