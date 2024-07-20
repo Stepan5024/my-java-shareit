@@ -46,43 +46,12 @@ public class BookingServiceImpl implements BookingService {
     public BookingResponseDto addBooking(BookingRequestDto bookingRequestDto) {
         log.info("Attempting to add a new booking with request: {}", bookingRequestDto);
 
-        if (bookingRequestDto.getStart() == null || bookingRequestDto.getEnd() == null) {
-            log.error("Invalid booking data: Start or end date cannot be null");
-            throw new InvalidBookingDataException("Start or end date cannot be null");
-        }
-        if (bookingRequestDto.getStart().isBefore(LocalDateTime.now())) {
-            log.error("Invalid booking data: Start date cannot be in the past");
-            throw new InvalidBookingDataException("Start date cannot be in the past");
-        }
-        if (bookingRequestDto.getEnd().isBefore(bookingRequestDto.getStart())) {
-            log.error("Invalid booking data: End date cannot be before start date");
-            throw new InvalidBookingDataException("End date cannot be before start date");
-        }
-        if (bookingRequestDto.getEnd().equals(bookingRequestDto.getStart())) {
-            log.error("Invalid booking data: End date cannot be equal start date");
-            throw new InvalidBookingDataException("End date cannot be equal start date");
-        }
-        User booker = userRepository.findById(bookingRequestDto.getBookerId())
-                .orElseThrow(() -> {
-                    log.error("User not found with id: {}", bookingRequestDto.getBookerId());
-                    return new UserNotFoundException("User not found");
-                });
-        Item item = itemRepository.findById(bookingRequestDto.getItemId())
-                .orElseThrow(() -> {
-                    log.error("Item not found with id: {}", bookingRequestDto.getItemId());
-                    return new ItemNotFoundException("Item not found");
-                });
+        validateBookingRequest(bookingRequestDto);
 
-        if (!item.getIsAvailable()) {
-            log.error("Item with id: {} is not available for booking", item.getId());
-            throw new BookingIsNotAvailableException("Item not available for booking");
-        }
+        User booker = findUserById(bookingRequestDto.getBookerId());
+        Item item = findItemById(bookingRequestDto.getItemId());
 
-        // Проверка, что пользователь не является владельцем предмета
-        if (item.getOwner().getId().equals(booker.getId())) {
-            log.error("User with id {} cannot book their own item with id {}", booker.getId(), item.getId());
-            throw new BookingNotFoundException("Owner cannot book their own item");
-        }
+        validateItemAndBooker(item, booker);
 
         Booking booking = BookingMapper.toEntity(bookingRequestDto, item, booker);
         assert booking != null;
@@ -98,16 +67,11 @@ public class BookingServiceImpl implements BookingService {
     public BookingResponseDto updateBookingStatus(Long bookingId, Long userId, Boolean approved) {
         log.info("Attempting to update status for booking id: {} by user id: {} with approval: {}", bookingId, userId, approved);
 
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new BookingNotFoundException("Booking not found"));
-
+        Booking booking = findBookingById(bookingId);
         log.debug("Booking found: {}", booking);
 
         // Проверяем, является ли текущий пользователь владельцем предмета
-        if (!booking.getItem().getOwner().getId().equals(userId)) {
-            log.error("User with id {} does not have access to booking with id {}", userId, bookingId);
-            throw new BookingNotFoundException("User does not have access to this booking");
-        }
+        validateUserOwnership(booking, userId);
 
         // Проверить, не одобрено ли бронирование уже
         if (booking.getStatus() == BookingStatus.APPROVED && approved) {
@@ -125,8 +89,8 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public BookingResponseDto getBooking(Long userId, Long bookingId) {
         log.info("Attempting to retrieve booking with id: {} for user id: {}", bookingId, userId);
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new BookingNotFoundException("Booking not found"));
+        Booking booking = findBookingById(bookingId);
+
         log.debug("Booking found get booking: {}", booking);
 
         // Проверка на то, что пользователь имеет доступ к бронированию
@@ -141,33 +105,26 @@ public class BookingServiceImpl implements BookingService {
     public List<BookingResponseDto> getBookings(Long userId, String state) {
         log.info("Retrieving bookings for user id: {} with state: {}", userId, state);
 
-        BookingStatus bookingState;
-        try {
-            bookingState = BookingStatus.valueOf(state.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            log.error("getBookings Unknown booking state: {}", state);
-            throw new InvalidBookingStatusException("Unknown state: " + state);
-        }
+        BookingStatus bookingState = parseBookingStatus(state);
         log.debug("getBookings Booking state: {}", bookingState);
 
         LocalDateTime now = LocalDateTime.now();
         Sort sort = Sort.by(Sort.Order.desc("startDate"));
         Sort sortById = Sort.by(Sort.Order.asc("id"));  // Сортировка по возрастанию id
-        List<Booking> bookings;
 
-        switch (bookingState) {
-            case CURRENT -> bookings = bookingRepository.findByBooker_IdAndStartDateBeforeAndEndDateAfter(
+        List<Booking> bookings = switch (bookingState) {
+            case CURRENT -> bookingRepository.findByBooker_IdAndStartDateBeforeAndEndDateAfter(
                     userId, now, now, sortById);
-            case PAST -> bookings = bookingRepository.findByBooker_IdAndEndDateBefore(
+            case PAST -> bookingRepository.findByBooker_IdAndEndDateBefore(
                     userId, now, sort);
-            case FUTURE -> bookings = bookingRepository.findByBooker_IdAndStartDateAfter(
+            case FUTURE -> bookingRepository.findByBooker_IdAndStartDateAfter(
                     userId, now, sort);
-            case WAITING -> bookings = bookingRepository.findByStatusAndBooker_Id(
+            case WAITING -> bookingRepository.findByStatusAndBooker_Id(
                     BookingStatus.WAITING, userId, sort);
-            case REJECTED -> bookings = bookingRepository.findByStatusAndBooker_Id(
+            case REJECTED -> bookingRepository.findByStatusAndBooker_Id(
                     BookingStatus.REJECTED, userId, sort);
-            default -> bookings = bookingRepository.findByBooker_Id(userId, sort);
-        }
+            default -> bookingRepository.findByBooker_Id(userId, sort);
+        };
 
         log.debug("Found {} bookings for user id: {} with state: {}", bookings.size(), userId, bookingState);
         BookingMapper bookingMapper = new BookingMapper(bookingRepository);
@@ -181,21 +138,10 @@ public class BookingServiceImpl implements BookingService {
     public List<BookingResponseDto> getOwnerBookings(Long ownerId, String state) {
         log.info("Retrieving bookings for owner id: {} with state: {}", ownerId, state);
 
-        BookingStatus bookingState;
-        try {
-            bookingState = BookingStatus.valueOf(state.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            log.error("Unknown booking state: {}", state);
-            throw new InvalidBookingStatusException("Unknown state: " + state);
-        }
+        BookingStatus bookingState = getBookingStatus(state);
         log.debug("Booking state: {}", bookingState);
 
-        // Проверка существования владельца
-        User owner = userRepository.findById(ownerId)
-                .orElseThrow(() -> {
-                    log.error("User not found with ownerId: {}", ownerId);
-                    return new UserNotFoundException("User not found");
-                });
+        User owner = findUserById(ownerId);
         log.debug("Owner found: {}", owner);
 
         LocalDateTime now = LocalDateTime.now();
@@ -235,15 +181,8 @@ public class BookingServiceImpl implements BookingService {
         Item item = booking.getItem();
         LocalDateTime now = LocalDateTime.now();
 
-        Booking nextBookingEntity = bookingRepository.findByItem_IdAndStartDateAfterOrderByStartDateAsc(item.getId(), now)
-                .stream()
-                .findFirst()
-                .orElse(null);
-
-        Booking lastBookingEntity = bookingRepository.findByItem_IdAndEndDateBeforeOrderByEndDateDesc(item.getId(), now)
-                .stream()
-                .findFirst()
-                .orElse(null);
+        Booking nextBookingEntity = getNextBooking(item.getId(), now);
+        Booking lastBookingEntity = getLastBooking(item.getId(), now);
 
         NextBooking nextBooking = nextBookingEntity != null ? new NextBooking(nextBookingEntity.getId(), nextBookingEntity.getBooker().getId()) : null;
         LastBooking lastBooking = lastBookingEntity != null ? new LastBooking(lastBookingEntity.getId(), lastBookingEntity.getBooker().getId()) : null;
@@ -257,4 +196,95 @@ public class BookingServiceImpl implements BookingService {
                 booking.getStatus()
         );
     }
+
+    private void validateBookingRequest(BookingRequestDto bookingRequestDto) {
+        if (bookingRequestDto.getStart() == null || bookingRequestDto.getEnd() == null) {
+            log.error("Invalid booking data: Start or end date cannot be null");
+            throw new InvalidBookingDataException("Start or end date cannot be null");
+        }
+        if (bookingRequestDto.getStart().isBefore(LocalDateTime.now())) {
+            log.error("Invalid booking data: Start date cannot be in the past");
+            throw new InvalidBookingDataException("Start date cannot be in the past");
+        }
+        if (bookingRequestDto.getEnd().isBefore(bookingRequestDto.getStart())) {
+            log.error("Invalid booking data: End date cannot be before start date");
+            throw new InvalidBookingDataException("End date cannot be before start date");
+        }
+        if (bookingRequestDto.getEnd().equals(bookingRequestDto.getStart())) {
+            log.error("Invalid booking data: End date cannot be equal start date");
+            throw new InvalidBookingDataException("End date cannot be equal start date");
+        }
+    }
+
+    private void validateItemAndBooker(Item item, User booker) {
+        if (!item.getIsAvailable()) {
+            log.error("Item with id: {} is not available for booking", item.getId());
+            throw new BookingIsNotAvailableException("Item not available for booking");
+        }
+        if (item.getOwner().getId().equals(booker.getId())) {
+            log.error("User with id {} cannot book their own item with id {}", booker.getId(), item.getId());
+            throw new BookingNotFoundException("Owner cannot book their own item");
+        }
+    }
+    private Booking getLastBooking(Long itemId, LocalDateTime now) {
+        return bookingRepository.findByItem_IdAndEndDateBeforeOrderByEndDateDesc(itemId, now)
+                .stream()
+                .findFirst()
+                .orElse(null);
+    }
+
+    private Booking getNextBooking(Long itemId, LocalDateTime now) {
+        return bookingRepository.findByItem_IdAndStartDateAfterOrderByStartDateAsc(itemId, now)
+                .stream()
+                .findFirst()
+                .orElse(null);
+    }
+
+    private void validateUserOwnership(Booking booking, Long userId) {
+        if (!booking.getItem().getOwner().getId().equals(userId)) {
+            log.error("User with id {} does not have access to booking with id {}", userId, booking.getId());
+            throw new BookingNotFoundException("User does not have access to this booking");
+        }
+    }
+
+    private BookingStatus getBookingStatus(String state) {
+        try {
+            return BookingStatus.valueOf(state.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            log.error("Unknown booking state: {}", state);
+            throw new InvalidBookingStatusException("Unknown state: " + state);
+        }
+    }
+    private User findUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> {
+                    log.error("User not found with id: {}", userId);
+                    return new UserNotFoundException("User not found");
+                });
+    }
+    private Item findItemById(Long itemId) {
+        return itemRepository.findById(itemId)
+                .orElseThrow(() -> {
+                    log.error("Item not found with id: {}", itemId);
+                    return new ItemNotFoundException("Item not found");
+                });
+    }
+
+    private Booking findBookingById(Long bookingId) {
+        return bookingRepository.findById(bookingId)
+                .orElseThrow(() -> {
+                    log.error("Booking not found with id: {}", bookingId);
+                    return new BookingNotFoundException("Booking not found");
+                });
+    }
+
+    private BookingStatus parseBookingStatus(String state) {
+        try {
+            return BookingStatus.valueOf(state.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            log.error("Unknown booking state: {}", state);
+            throw new InvalidBookingStatusException("Unknown state: " + state);
+        }
+    }
+
 }

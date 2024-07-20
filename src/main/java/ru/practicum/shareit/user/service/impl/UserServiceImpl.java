@@ -29,10 +29,8 @@ public class UserServiceImpl implements UserService {
     public UserDto addUser(UserDto userDto) {
         log.info("Attempting to add a new user with email: {}", userDto.getEmail());
 
-        if (userDto.getEmail() == null || userDto.getEmail().isBlank()) {
-            log.error("Failed to add user: Email already exists");
-            throw new InvalidUserDataException("Email cannot be empty");
-        }
+        validateUserEmail(userDto.getEmail());
+
         User user = UserMapper.toEntity(userDto);
         user = userRepository.save(user);
         log.info("Successfully added user with id: {}", user.getId());
@@ -42,15 +40,13 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDto updateUser(Long userId, UserDto userDto) {
         log.info("Attempting to update user with id: {}", userId);
-        User user = userRepository.findById(userId).orElse(null);
-        if (user == null) {
-            log.error("Failed to update user: User not found");
-            throw new IllegalArgumentException("User not found");
-        }
+        User user = findUserById(userId);
+
         if (userDto.getName() != null) {
             user.setName(userDto.getName());
         }
         if (userDto.getEmail() != null && !userDto.getEmail().equals(user.getEmail())) {
+            validateUserEmail(userDto.getEmail());
             user.setEmail(userDto.getEmail());
         }
         user = userRepository.save(user);
@@ -61,11 +57,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDto getUser(Long userId) {
         log.info("Attempting to retrieve user with id: {}", userId);
-        User user = userRepository.findById(userId).orElse(null);
-        if (user == null) {
-            log.error("Failed to retrieve user: User not found");
-            throw new UserNotFoundException("User not found");
-        }
+        User user = findUserById(userId);
         log.info("Successfully retrieved user with id: {}", user.getId());
         return UserMapper.toDto(user);
     }
@@ -81,7 +73,23 @@ public class UserServiceImpl implements UserService {
     @Override
     public void deleteUser(Long userId) {
         log.info("Attempting to delete user with id: {}", userId);
+        findUserById(userId);
         userRepository.deleteById(userId);
         log.info("Successfully deleted user with id: {}", userId);
+    }
+
+    private void validateUserEmail(String email) {
+        if (email == null || email.isBlank()) {
+            log.error("Email cannot be empty");
+            throw new InvalidUserDataException("Email cannot be empty");
+        }
+    }
+
+    private User findUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> {
+                    log.error("User not found with id: {}", userId);
+                    return new UserNotFoundException("User not found");
+                });
     }
 }
