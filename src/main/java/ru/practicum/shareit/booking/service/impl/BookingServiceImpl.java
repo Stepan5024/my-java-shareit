@@ -226,6 +226,7 @@ public class BookingServiceImpl implements BookingService {
             throw new BookingNotFoundException("Owner cannot book their own item");
         }
     }
+
     private Booking getLastBooking(Long itemId, LocalDateTime now) {
         return bookingRepository.findByItem_IdAndEndDateBeforeOrderByEndDateDesc(itemId, now)
                 .stream()
@@ -255,6 +256,7 @@ public class BookingServiceImpl implements BookingService {
             throw new InvalidBookingStatusException("Unknown state: " + state);
         }
     }
+
     private User findUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> {
@@ -262,6 +264,7 @@ public class BookingServiceImpl implements BookingService {
                     return new UserNotFoundException("User not found");
                 });
     }
+
     private Item findItemById(Long itemId) {
         return itemRepository.findById(itemId)
                 .orElseThrow(() -> {
