@@ -1,19 +1,20 @@
 package ru.practicum.shareit.item.service.impl;
 
 
+import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import ru.practicum.shareit.booking.exception.InvalidBookingDataException;
+import ru.practicum.shareit.booking.enums.Status;
 import ru.practicum.shareit.booking.model.*;
 import ru.practicum.shareit.booking.repository.BookingRepository;
+import ru.practicum.shareit.error.NotFoundException;
+import ru.practicum.shareit.error.ValidationException;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDetailsWithBookingDatesDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.mapper.ItemMapper;
-import ru.practicum.shareit.item.exception.InvalidCommentException;
-import ru.practicum.shareit.item.exception.InvalidItemDataException;
-import ru.practicum.shareit.item.exception.ItemNotFoundException;
 import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.CommentRepository;
@@ -21,7 +22,6 @@ import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.item.service.ItemService;
 import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.request.repository.ItemRequestRepository;
-import ru.practicum.shareit.user.exception.UserNotFoundException;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 @Service
 public class ItemServiceImpl implements ItemService {
+    private static final Sort SORT = Sort.by(Sort.Direction.DESC, "created");
 
     private final ItemRepository itemRepository;
     private final UserRepository userRepository;
@@ -45,13 +46,12 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public ItemDto addItem(Long userId, ItemDto itemDto) {
         log.info("Attempting to add a new item for user id: {}", userId);
-        validateItemData(itemDto);
 
         User owner = getUserById(userId);
         ItemRequest request = null;
         if (itemDto.getRequestId() != null) {
             request = itemRequestRepository.findById(itemDto.getRequestId())
-                    .orElseThrow(() -> new ItemNotFoundException("Item request not found"));
+                    .orElseThrow(() -> new NotFoundException("Item request not found"));
         }
 
         Item item = ItemMapper.toEntity(itemDto, owner, request);
@@ -61,6 +61,7 @@ public class ItemServiceImpl implements ItemService {
         return ItemMapper.toDto(item, null, null);
     }
 
+    @Transactional
     @Override
     public ItemDto updateItem(Long userId, Long itemId, ItemDto itemDto) {
         log.info("Attempting to update item with id: {} for user id: {}", itemId, userId);
@@ -68,7 +69,7 @@ public class ItemServiceImpl implements ItemService {
         Item item = itemRepository.findById(itemId).orElse(null);
         if (item == null || !isItemOwner(item, userId)) {
             log.error("User is not the owner of the item or item not found for item id: {}", itemId);
-            throw new UserNotFoundException("User is not the owner of the item or item not found");
+            throw new NotFoundException("User is not the owner of the item or item not found");
         }
         updateItemDetails(item, itemDto);
 
@@ -88,7 +89,7 @@ public class ItemServiceImpl implements ItemService {
     public ItemDetailsWithBookingDatesDto getItem(Long itemId, Long userId) {
         log.info("Attempting to retrieve item with id: {}", itemId);
         Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new ItemNotFoundException("Item not found"));
+                .orElseThrow(() -> new NotFoundException("Item not found"));
 
         LocalDateTime now = LocalDateTime.now();
         log.info("Current time: {}", now);
@@ -200,7 +201,7 @@ public class ItemServiceImpl implements ItemService {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> {
                     log.error("Item not found with id: {}", itemId);
-                    return new ItemNotFoundException("Item not found");
+                    return new NotFoundException("Item not found");
                 });
         User author = getUserById(userId);
 
@@ -209,12 +210,10 @@ public class ItemServiceImpl implements ItemService {
 
         if (!hasBooked) {
             log.error("User with id: {} has not booked item with id: {}", userId, itemId);
-            throw new InvalidBookingDataException("User has not booked this item");
+            throw new ValidationException(
+                    String.format("Пользователь с id %s не арендовал вещь с id %s", userId, itemId));
         }
-        if (commentDto.getText().isBlank() || commentDto.getText().isEmpty()) {
-            log.error("Comment text is blank or empty");
-            throw new InvalidCommentException("Text comment should not be blank");
-        }
+
 
         Comment comment = new Comment();
         comment.setText(commentDto.getText());
@@ -292,20 +291,7 @@ public class ItemServiceImpl implements ItemService {
         return booking != null ? new NextBooking(booking.getId(), booking.getBooker().getId()) : null;
     }
 
-    private void validateItemData(ItemDto itemDto) {
-        if (itemDto.getAvailable() == null) {
-            log.error("Invalid item data: Item availability status is null");
-            throw new InvalidItemDataException("Item availability status cannot be null");
-        }
-        if (itemDto.getName() == null || itemDto.getName().isBlank()) {
-            log.error("Invalid item data: Item name is empty");
-            throw new InvalidItemDataException("Item name cannot be empty");
-        }
-        if (itemDto.getDescription() == null || itemDto.getDescription().isBlank()) {
-            log.error("Invalid item data: Item description is empty");
-            throw new InvalidItemDataException("Item description cannot be empty");
-        }
-    }
+
 
     private void updateItemDetails(Item item, ItemDto itemDto) {
         if (itemDto.getName() != null) {
@@ -323,20 +309,20 @@ public class ItemServiceImpl implements ItemService {
         return userRepository.findById(userId)
                 .orElseThrow(() -> {
                     log.error("Author not found with id: {}", userId);
-                    return new UserNotFoundException("Author not found");
+                    return new NotFoundException("Author not found");
                 });
     }
 
     private BookingDetails getBookingDetails(Long itemId, LocalDateTime now) {
 
-        List<Booking> bookings = bookingRepository.findByItem_IdAndStatusOrderByEndDateDesc(itemId, BookingStatus.APPROVED);
+        List<Booking> bookings = bookingRepository.findByItem_IdAndStatusOrderByEndDateDesc(itemId, Status.APPROVED);
 
         Booking lastBookingEntity = bookings.stream()
                 .filter(b -> b.getEndDate().isBefore(now) || bookings.size() == 1)
                 .findFirst()
                 .orElse(null);
 
-        List<Booking> futureBookings = bookingRepository.findByItem_IdAndStatusOrderByStartDateAsc(itemId, BookingStatus.APPROVED);
+        List<Booking> futureBookings = bookingRepository.findByItem_IdAndStatusOrderByStartDateAsc(itemId, Status.APPROVED);
         Booking nextBookingEntity = futureBookings.stream()
                 .filter(b -> b.getStartDate().isAfter(now))
                 .findFirst()

@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import ru.practicum.shareit.booking.enums.Status;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.model.User;
 
@@ -41,5 +42,5 @@ public class Booking {
     @NotNull(message = "Status cannot be null")
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    BookingStatus status;
+    Status status;
 }

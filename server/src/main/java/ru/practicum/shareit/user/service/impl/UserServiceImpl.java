@@ -5,11 +5,11 @@ import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.practicum.shareit.error.NotFoundException;
 import ru.practicum.shareit.user.dto.UserDto;
 
 import ru.practicum.shareit.user.dto.mapper.UserMapper;
-import ru.practicum.shareit.user.exception.InvalidUserDataException;
-import ru.practicum.shareit.user.exception.UserNotFoundException;
+
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 import ru.practicum.shareit.user.service.UserService;
@@ -29,8 +29,6 @@ public class UserServiceImpl implements UserService {
     public UserDto addUser(UserDto userDto) {
         log.info("Attempting to add a new user with email: {}", userDto.getEmail());
 
-        validateUserEmail(userDto.getEmail());
-
         User user = UserMapper.toEntity(userDto);
         user = userRepository.save(user);
         log.info("Successfully added user with id: {}", user.getId());
@@ -46,7 +44,6 @@ public class UserServiceImpl implements UserService {
             user.setName(userDto.getName());
         }
         if (userDto.getEmail() != null && !userDto.getEmail().equals(user.getEmail())) {
-            validateUserEmail(userDto.getEmail());
             user.setEmail(userDto.getEmail());
         }
         user = userRepository.save(user);
@@ -78,18 +75,12 @@ public class UserServiceImpl implements UserService {
         log.info("Successfully deleted user with id: {}", userId);
     }
 
-    private void validateUserEmail(String email) {
-        if (email == null || email.isBlank()) {
-            log.error("Email cannot be empty");
-            throw new InvalidUserDataException("Email cannot be empty");
-        }
-    }
 
     private User findUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> {
                     log.error("User not found with id: {}", userId);
-                    return new UserNotFoundException("User not found");
+                    return new NotFoundException("User not found");
                 });
     }
 }
