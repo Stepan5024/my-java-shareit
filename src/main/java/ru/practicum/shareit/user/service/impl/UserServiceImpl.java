@@ -15,7 +15,6 @@ import ru.practicum.shareit.user.repository.UserRepository;
 import ru.practicum.shareit.user.service.UserService;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -24,8 +23,6 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    // Поле для хранения текущего значения идентификатора
-    private final AtomicLong currentId = new AtomicLong(0);
 
     @Override
     @Transactional
@@ -54,13 +51,6 @@ public class UserServiceImpl implements UserService {
             user.setName(userDto.getName());
         }
         if (userDto.getEmail() != null && !userDto.getEmail().equals(user.getEmail())) {
-            /*if (userRepository.existsByEmail(userDto.getEmail())) {
-                log.error("Failed to update user: Email already exists");
-                incrementId();
-                throw new EmailAlreadyExistsException("Email already exists");
-            }
-
-             */
             user.setEmail(userDto.getEmail());
         }
         user = userRepository.save(user);
@@ -93,9 +83,5 @@ public class UserServiceImpl implements UserService {
         log.info("Attempting to delete user with id: {}", userId);
         userRepository.deleteById(userId);
         log.info("Successfully deleted user with id: {}", userId);
-    }
-
-    private void incrementId() {
-        currentId.incrementAndGet();
     }
 }

@@ -64,7 +64,6 @@ public class ItemServiceImpl implements ItemService {
             throw new UserNotFoundException("User not found");
         }
 
-
         Item item = ItemMapper.toEntity(itemDto, owner, null);
         item = itemRepository.save(item);
         log.info("Successfully added item with id: {}", item.getId());
@@ -76,7 +75,7 @@ public class ItemServiceImpl implements ItemService {
         log.info("Attempting to update item with id: {} for user id: {}", itemId, userId);
 
         Item item = itemRepository.findById(itemId).orElse(null);
-        if (item == null || !item.getOwner().getId().equals(userId)) {
+        if (item == null || !isItemOwner(item, userId)) {
             log.error("User is not the owner of the item or item not found for item id: {}", itemId);
             throw new UserNotFoundException("User is not the owner of the item or item not found");
         }
@@ -92,19 +91,11 @@ public class ItemServiceImpl implements ItemService {
         item = itemRepository.save(item);
 
         LocalDateTime now = LocalDateTime.now();
-        Booking lastBookingEntity = bookingRepository.findByItem_IdAndEndDateBeforeOrderByEndDateDesc(itemId, now)
-                .stream()
-                .findFirst()
-                .orElse(null);
+        Booking lastBookingEntity = getLastBooking(itemId, now);
+        Booking nextBookingEntity = getNextBooking(itemId, now);
 
-        Booking nextBookingEntity = bookingRepository.findByItem_IdAndStartDateAfterOrderByStartDateAsc(itemId, now)
-                .stream()
-                .findFirst()
-                .orElse(null);
-
-        LastBooking lastBooking = lastBookingEntity != null ? new LastBooking(lastBookingEntity.getId(), lastBookingEntity.getBooker().getId()) : null;
-        NextBooking nextBooking = nextBookingEntity != null ? new NextBooking(nextBookingEntity.getId(), nextBookingEntity.getBooker().getId()) : null;
-
+        LastBooking lastBooking = mapToLastBooking(lastBookingEntity);
+        NextBooking nextBooking = mapToNextBooking(nextBookingEntity);
 
         log.info("Successfully updated item with id: {}", item.getId());
         return ItemMapper.toDto(item, nextBooking, lastBooking);
@@ -119,55 +110,38 @@ public class ItemServiceImpl implements ItemService {
         LocalDateTime now = LocalDateTime.now();
         log.info("Current time: {}", now);
 
-        Booking lastBookingEntity = null;
-        Booking nextBookingEntity = null;
+        Booking lastBookingEntity;
+        Booking nextBookingEntity;
         LastBooking lastBooking = null;
         NextBooking nextBooking = null;
 
-        // Check if the current user is the owner of the item
-        if (item.getOwner().getId().equals(userId)) {
-            // Get all approved bookings for the item ordered by end date descending
+        if (isItemOwner(item, userId)) {
             List<Booking> bookings = bookingRepository.findByItem_IdAndStatusOrderByEndDateDesc(itemId, BookingStatus.APPROVED);
-            log.info("Approved bookings for item {}: {}", itemId, bookings.stream()
-                    .map(b -> String.format("Booking{id=%d, startDate=%s, endDate=%s, bookerId=%d, status=%s}",
-                            b.getId(), b.getStartDate(), b.getEndDate(), b.getBooker().getId(), b.getStatus()))
-                    .collect(Collectors.joining(", ")));
 
-            // Get the last booking
             lastBookingEntity = bookings.stream()
-                    .peek(b -> log.info("Checking booking with end date: {}", b.getEndDate()))
                     .filter(b -> b.getEndDate().isBefore(now) || bookings.size() == 1)
                     .findFirst()
                     .orElse(null);
+
             if (lastBookingEntity != null) {
                 log.info("Last booking found: id={}, endDate={}", lastBookingEntity.getId(), lastBookingEntity.getEndDate());
             } else {
                 log.info("No last booking found");
             }
-            // Get all approved future bookings for the item ordered by start date ascending
+
             List<Booking> futureBookings = bookingRepository.findByItem_IdAndStatusOrderByStartDateAsc(itemId, BookingStatus.APPROVED);
             nextBookingEntity = futureBookings.stream()
                     .filter(b -> b.getStartDate().isAfter(now))
                     .findFirst()
                     .orElse(null);
 
-            // Create DTO for the last booking
-            lastBooking = lastBookingEntity != null ? new LastBooking(lastBookingEntity.getId(),
-                    lastBookingEntity.getBooker().getId()) : null;
-            nextBooking = nextBookingEntity != null ? new NextBooking(nextBookingEntity.getId(),
-                    nextBookingEntity.getBooker().getId()) : null;
+
+            nextBooking = mapToNextBooking(nextBookingEntity);
+            lastBooking = mapToLastBooking(lastBookingEntity);
         }
 
-        // Retrieve and create a list of comments
-        List<CommentDto> comments = commentRepository.findByItem_Id(itemId).stream()
-                .map(comment -> new CommentDto(
-                        comment.getId(),
-                        comment.getText(),
-                        comment.getUser() != null ? comment.getUser().getName() : "Unknown",
-                        comment.getCreated()))
-                .collect(Collectors.toList());
+        List<CommentDto> comments = mapCommentsToDto(commentRepository.findByItem_Id(itemId));
 
-        // Create DTO for the item
         ItemDetailsWithBookingDatesDto itemDto = ItemMapper.toItemDetailsWithBookingDatesDto(
                 item, lastBooking, nextBooking, comments);
 
@@ -177,31 +151,29 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemDetailsWithBookingDatesDto getItemDetailsWithBookings(Long itemId) {
+        log.info("getItemDetailsWithBookings Attempting to retrieve item with id: {}", itemId);
+
         Optional<Item> optionalItem = itemRepository.findById(itemId);
         if (optionalItem.isEmpty()) {
+            log.error("getItemDetailsWithBookings Item not found with id: {}", itemId);
             throw new RuntimeException("Item not found");
         }
 
         Item item = optionalItem.get();
+        log.info("Item retrieved: {}", item);
+
         LocalDateTime now = LocalDateTime.now();
+        log.info("Current time now: {}", now);
 
-        Booking lastBookingEntity = bookingRepository.findByItem_IdAndEndDateBeforeOrderByEndDateDesc(itemId, now)
-                .stream()
-                .findFirst()
-                .orElse(null);
+        Booking lastBookingEntity = getLastBooking(itemId, now);
+        Booking nextBookingEntity = getNextBooking(itemId, now);
 
-        Booking nextBookingEntity = bookingRepository.findByItem_IdAndStartDateAfterOrderByStartDateAsc(itemId, now)
-                .stream()
-                .findFirst()
-                .orElse(null);
+        NextBooking nextBooking = mapToNextBooking(nextBookingEntity);
+        LastBooking lastBooking = mapToLastBooking(lastBookingEntity);
 
-        LastBooking lastBooking = lastBookingEntity != null ? new LastBooking(lastBookingEntity.getId(), lastBookingEntity.getBooker().getId()) : null;
-        NextBooking nextBooking = nextBookingEntity != null ? new NextBooking(nextBookingEntity.getId(), nextBookingEntity.getBooker().getId()) : null;
+        List<CommentDto> comments = mapCommentsToDto(commentRepository.findByItem_Id(itemId));
 
-        List<CommentDto> comments = commentRepository.findByItem_Id(itemId).stream()
-                .map(comment -> new CommentDto(comment.getId(), comment.getText(), comment.getUser().getName(),
-                        comment.getCreated()))
-                .collect(Collectors.toList());
+        log.info("Retrieved comments: {}", comments);
 
         ItemDetailsWithBookingDatesDto itemDto = ItemMapper.toItemDetailsWithBookingDatesDto(
                 item, lastBooking, nextBooking, comments);
@@ -225,23 +197,19 @@ public class ItemServiceImpl implements ItemService {
                     // Получение прошлых бронирований
                     List<Booking> pastBookings = bookingRepository.findByItem_IdAndEndDateBeforeOrderByEndDateDesc(item.getId(), now);
 
-                    // Выборка ближайшего будущего бронирования (если оно есть)
-                    NextBooking nextBooking = futureBookings.isEmpty() ? null : new NextBooking(futureBookings.get(0).getId(), futureBookings.get(0).getBooker().getId());
-                    // Выборка последнего прошедшего бронирования (если оно есть)
-                    LastBooking lastBooking = pastBookings.isEmpty() ? null : new LastBooking(pastBookings.get(0).getId(), pastBookings.get(0).getBooker().getId());
+                    // Определение ближайшего будущего бронирования (если оно есть)
+                    Booking nextBookingEntity = futureBookings.isEmpty() ? null : futureBookings.get(0);
+                    // Определение последнего прошедшего бронирования (если оно есть)
+                    Booking lastBookingEntity = pastBookings.isEmpty() ? null : pastBookings.get(0);
 
-                    // Проверка на null для request и owner
+                    LastBooking lastBooking = mapToLastBooking(lastBookingEntity);
+                    NextBooking nextBooking = mapToNextBooking(nextBookingEntity);
+
                     Long requestId = item.getRequest() != null ? item.getRequest().getId() : null;
                     Long ownerId = item.getOwner() != null ? item.getOwner().getId() : null;
-                    // Получение комментариев
-                    List<CommentDto> comments = commentRepository.findByItem_Id(item.getId()).stream()
-                            .map(comment -> new CommentDto(
-                                    comment.getId(),
-                                    comment.getText(),
-                                    comment.getUser().getName(),
-                                    comment.getCreated()
-                            ))
-                            .collect(Collectors.toList());
+
+                    List<CommentDto> comments = mapCommentsToDto(commentRepository.findByItem_Id(item.getId()));
+
                     return new ItemDto(
                             item.getId(),
                             item.getName(),
@@ -255,16 +223,6 @@ public class ItemServiceImpl implements ItemService {
                     );
                 })
                 .collect(Collectors.toList());
-    }
-
-
-    private CommentDto toCommentDto(Comment comment) {
-        return new CommentDto(
-                comment.getId(),
-                comment.getText(),
-                comment.getUser().getName(),
-                comment.getCreated()
-        );
     }
 
     @Override
@@ -328,16 +286,60 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public List<CommentDto> getCommentsByItemId(Long itemId, Long userId) {
         log.info("Fetching comments for itemId: {}", itemId);
-        List<Comment> comments = commentRepository.findByItem_Id(itemId);
-        comments = comments.stream().filter(comment -> comment.getUser().getId().equals(userId)).collect(Collectors.toList());
+        List<CommentDto> comments = mapCommentsToDto(commentRepository.findByItem_Id(itemId));
 
         return comments.stream()
                 .map(comment -> new CommentDto(
                         comment.getId(),
                         comment.getText(),
-                        comment.getUser().getName(), // Проверьте, что это правильно
+                        comment.getAuthorName(),
                         comment.getCreated()
                 ))
                 .collect(Collectors.toList());
     }
+
+    private Booking getLastBooking(Long itemId, LocalDateTime now) {
+        log.info("Retrieving last booking for item id: {} before current time: {}", itemId, now);
+        return bookingRepository.findByItem_IdAndEndDateBeforeOrderByEndDateDesc(itemId, now)
+                .stream()
+                .findFirst()
+                .orElse(null);
+    }
+
+    private Booking getNextBooking(Long itemId, LocalDateTime now) {
+        log.info("Retrieving next booking for item id: {} after current time: {}", itemId, now);
+        return bookingRepository.findByItem_IdAndStartDateAfterOrderByStartDateAsc(itemId, now)
+                .stream()
+                .findFirst()
+                .orElse(null);
+    }
+
+    private boolean isItemOwner(Item item, Long userId) {
+        if (item == null) {
+            log.error("Item is null during ownership check");
+            return false;
+        }
+        boolean isOwner = item.getOwner().getId().equals(userId);
+        log.info("Item ownership check: itemId={}, userId={}, isOwner={}", item.getId(), userId, isOwner);
+        return isOwner;
+    }
+
+    private List<CommentDto> mapCommentsToDto(List<Comment> comments) {
+        return comments.stream()
+                .map(comment -> new CommentDto(
+                        comment.getId(),
+                        comment.getText(),
+                        comment.getUser() != null ? comment.getUser().getName() : "Unknown",
+                        comment.getCreated()))
+                .collect(Collectors.toList());
+    }
+
+    private LastBooking mapToLastBooking(Booking booking) {
+        return booking != null ? new LastBooking(booking.getId(), booking.getBooker().getId()) : null;
+    }
+
+    private NextBooking mapToNextBooking(Booking booking) {
+        return booking != null ? new NextBooking(booking.getId(), booking.getBooker().getId()) : null;
+    }
+
 }
