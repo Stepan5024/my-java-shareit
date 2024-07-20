@@ -110,7 +110,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BookingIsNotAvailableException.class)
     public ResponseEntity<Object> handleBookingItemNotAvailableException(BookingIsNotAvailableException ex,
-                                                                                WebRequest request) {
+                                                                         WebRequest request) {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("status", HttpStatus.BAD_REQUEST.value());
@@ -136,7 +136,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidBookingStatusException.class)
     public ResponseEntity<Object> handleInvalidBookingStatusException(InvalidBookingStatusException ex,
-                                                                    WebRequest request) {
+                                                                      WebRequest request) {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("status", HttpStatus.BAD_REQUEST.value());

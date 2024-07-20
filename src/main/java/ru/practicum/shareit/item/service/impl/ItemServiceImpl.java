@@ -4,7 +4,6 @@ package ru.practicum.shareit.item.service.impl;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.exception.InvalidBookingDataException;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.model.BookingStatus;
@@ -176,58 +175,10 @@ public class ItemServiceImpl implements ItemService {
         return itemDto;
     }
 
-    private BookingDto toBookingDto(Booking booking) {
-        return new BookingDto(
-                booking.getId(),
-                booking.getStartDate(),
-                booking.getEndDate(),
-                booking.getItem().getId(),
-                booking.getBooker().getId(),
-                booking.getStatus()
-        );
-    }
-
-    @Override
-    public List<ItemDetailsWithBookingDatesDto> getItemsWithBookings() {
-        List<Item> items = itemRepository.findAll();
-        LocalDateTime now = LocalDateTime.now();
-
-        return items.stream()
-                .map(item -> {
-                    // Получение будущих бронирований
-                    List<Booking> futureBookings = bookingRepository.findByItem_IdAndStartDateAfterOrderByStartDateAsc(item.getId(), now);
-                    // Получение прошлых бронирований
-                    List<Booking> pastBookings = bookingRepository.findByItem_IdAndEndDateBeforeOrderByEndDateDesc(item.getId(), now);
-
-                    // Создание объекта ближайшего будущего бронирования (если оно есть)
-                    NextBooking nextBooking = futureBookings.isEmpty() ? null : new NextBooking(futureBookings.get(0).getId(), futureBookings.get(0).getBooker().getId());
-                    // Создание объекта последнего прошедшего бронирования (если оно есть)
-                    LastBooking lastBooking = pastBookings.isEmpty() ? null : new LastBooking(pastBookings.get(0).getId(), pastBookings.get(0).getBooker().getId());
-
-                    // Получение списка комментариев для вещи
-                    List<CommentDto> comments = commentRepository.findByItem_Id(item.getId())
-                            .stream()
-                            .map(this::toCommentDto)
-                            .collect(Collectors.toList());
-
-                    return new ItemDetailsWithBookingDatesDto(
-                            item.getId(),
-                            item.getName(),
-                            item.getDescription(),
-                            item.getIsAvailable(),
-                            nextBooking,
-                            lastBooking,
-                            comments
-                    );
-                })
-                .collect(Collectors.toList());
-    }
-
     @Override
     public ItemDetailsWithBookingDatesDto getItemDetailsWithBookings(Long itemId) {
         Optional<Item> optionalItem = itemRepository.findById(itemId);
         if (optionalItem.isEmpty()) {
-            // Логика обработки случая, когда Item не найден (например, выброс исключения)
             throw new RuntimeException("Item not found");
         }
 

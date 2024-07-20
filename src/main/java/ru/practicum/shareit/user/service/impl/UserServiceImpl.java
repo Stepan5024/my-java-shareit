@@ -8,12 +8,10 @@ import org.springframework.stereotype.Service;
 import ru.practicum.shareit.user.dto.UserDto;
 
 import ru.practicum.shareit.user.dto.mapper.UserMapper;
-import ru.practicum.shareit.user.exception.EmailAlreadyExistsException;
 import ru.practicum.shareit.user.exception.InvalidUserDataException;
 import ru.practicum.shareit.user.exception.UserNotFoundException;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
-import ru.practicum.shareit.user.repository.UserStorage;
 import ru.practicum.shareit.user.service.UserService;
 
 import java.util.List;

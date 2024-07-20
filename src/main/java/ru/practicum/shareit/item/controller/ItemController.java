@@ -21,7 +21,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/items")
 public class ItemController {
-
     private final ItemService itemService;
     private static final String USER_HEADER = "X-Sharer-User-Id";
 
@@ -72,6 +71,7 @@ public class ItemController {
         log.info("Received request to add comment for itemId: {} by userId: {}", itemId, userId);
 
         CommentDto createdComment = itemService.addComment(itemId, userId, commentDto);
+        log.info("Created comment: {}", createdComment);
         return ResponseEntity.ok(createdComment);
     }
 
@@ -79,8 +79,8 @@ public class ItemController {
     public ResponseEntity<List<CommentDto>> getCommentsByItemId(@PathVariable Long itemId,
                                                                 @RequestHeader("X-Sharer-User-Id") Long userId) {
         log.info("Received request to get comments for itemId: {}", itemId);
-
         List<CommentDto> comments = itemService.getCommentsByItemId(itemId, userId);
+        log.info("Retrieved comments: {}", comments);
         return ResponseEntity.ok(comments);
     }
 }

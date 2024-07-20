@@ -42,7 +42,6 @@ public class BookingServiceImpl implements BookingService {
     private final ItemRepository itemRepository;
     private final UserRepository userRepository;
 
-
     @Override
     public BookingResponseDto addBooking(BookingRequestDto bookingRequestDto) {
         log.info("Attempting to add a new booking with request: {}", bookingRequestDto);
@@ -136,14 +135,6 @@ public class BookingServiceImpl implements BookingService {
             throw new BookingNotFoundException("User does not have access to this booking");
         }
         return toBookingResponseDto(booking);
-    }
-
-    @Override
-    public List<Booking> findBookingsByItemId(Long itemId) {
-        log.info("Retrieving bookings for item id: {}", itemId);
-        List<Booking> bookings = bookingRepository.findByItemId(itemId);
-        log.debug("Found {} bookings for item id: {}", bookings.size(), itemId);
-        return bookings;
     }
 
     @Override
