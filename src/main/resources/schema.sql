@@ -45,11 +45,11 @@ CREATE TABLE IF NOT EXISTS bookings (
     end_date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     item_id BIGINT NOT NULL,
     booker_id BIGINT NOT NULL,
-    status VARCHAR(50) NOT NULL,
+    status VARCHAR(50) NOT NULL CHECK (status IN ('ALL', 'APPROVED', 'CURRENT', 'PAST', 'FUTURE', 'WAITING', 'REJECTED')),
     CONSTRAINT pk_booking PRIMARY KEY (id),
     CONSTRAINT fk_booking_item FOREIGN KEY (item_id) REFERENCES items (id),
-    CONSTRAINT fk_booking_booker FOREIGN KEY (booker_id) REFERENCES users (id),
-    CONSTRAINT fk_booking_status FOREIGN KEY (status) REFERENCES booking_statuses (status)
+    CONSTRAINT fk_booking_booker FOREIGN KEY (booker_id) REFERENCES users (id)
+
 );
 
 

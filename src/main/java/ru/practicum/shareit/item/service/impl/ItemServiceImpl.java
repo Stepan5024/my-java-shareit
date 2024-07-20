@@ -5,32 +5,27 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.dto.BookingDto;
-import ru.practicum.shareit.booking.exception.BookingNotFoundException;
 import ru.practicum.shareit.booking.exception.InvalidBookingDataException;
 import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.booking.model.BookingStatus;
 import ru.practicum.shareit.booking.model.LastBooking;
 import ru.practicum.shareit.booking.model.NextBooking;
 import ru.practicum.shareit.booking.repository.BookingRepository;
-import ru.practicum.shareit.item.exception.InvalidCommentException;
-import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDetailsWithBookingDatesDto;
 import ru.practicum.shareit.item.dto.ItemDto;
-
 import ru.practicum.shareit.item.dto.mapper.ItemMapper;
+import ru.practicum.shareit.item.exception.InvalidCommentException;
 import ru.practicum.shareit.item.exception.InvalidItemDataException;
 import ru.practicum.shareit.item.exception.ItemNotFoundException;
+import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.CommentRepository;
 import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.item.service.ItemService;
-
-
 import ru.practicum.shareit.user.exception.UserNotFoundException;
 import ru.practicum.shareit.user.model.User;
-
 import ru.practicum.shareit.user.repository.UserRepository;
-
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -123,38 +118,48 @@ public class ItemServiceImpl implements ItemService {
                 .orElseThrow(() -> new ItemNotFoundException("Item not found"));
 
         LocalDateTime now = LocalDateTime.now();
+        log.info("Current time: {}", now);
+
         Booking lastBookingEntity = null;
         Booking nextBookingEntity = null;
         LastBooking lastBooking = null;
         NextBooking nextBooking = null;
 
-        // Проверка, является ли текущий пользователь владельцем предмета
+        // Check if the current user is the owner of the item
         if (item.getOwner().getId().equals(userId)) {
-            List<Booking> bookings = bookingRepository.findByItem_IdOrderByEndDateDesc(itemId);
+            // Get all approved bookings for the item ordered by end date descending
+            List<Booking> bookings = bookingRepository.findByItem_IdAndStatusOrderByEndDateDesc(itemId, BookingStatus.APPROVED);
+            log.info("Approved bookings for item {}: {}", itemId, bookings.stream()
+                    .map(b -> String.format("Booking{id=%d, startDate=%s, endDate=%s, bookerId=%d, status=%s}",
+                            b.getId(), b.getStartDate(), b.getEndDate(), b.getBooker().getId(), b.getStatus()))
+                    .collect(Collectors.joining(", ")));
 
-            // Получение последнего бронирования
+            // Get the last booking
             lastBookingEntity = bookings.stream()
-                    .filter(b -> b.getEndDate().isBefore(now) || bookings.size() == 1) // Если одно бронирование, то оно считается последним
+                    .peek(b -> log.info("Checking booking with end date: {}", b.getEndDate()))
+                    .filter(b -> b.getEndDate().isBefore(now) || bookings.size() == 1)
                     .findFirst()
                     .orElse(null);
-
-            // Получение следующего бронирования
-            List<Booking> futureBookings = bookingRepository.findByItem_IdOrderByStartDateAsc(itemId);
+            if (lastBookingEntity != null) {
+                log.info("Last booking found: id={}, endDate={}", lastBookingEntity.getId(), lastBookingEntity.getEndDate());
+            } else {
+                log.info("No last booking found");
+            }
+            // Get all approved future bookings for the item ordered by start date ascending
+            List<Booking> futureBookings = bookingRepository.findByItem_IdAndStatusOrderByStartDateAsc(itemId, BookingStatus.APPROVED);
             nextBookingEntity = futureBookings.stream()
-                    .filter(b -> b.getStartDate().isAfter(now) || futureBookings.size() == 1) // Если одно бронирование, то оно считается следующим
+                    .filter(b -> b.getStartDate().isAfter(now))
                     .findFirst()
                     .orElse(null);
 
-            // Создание DTO для последнего бронирования
+            // Create DTO for the last booking
             lastBooking = lastBookingEntity != null ? new LastBooking(lastBookingEntity.getId(),
                     lastBookingEntity.getBooker().getId()) : null;
             nextBooking = nextBookingEntity != null ? new NextBooking(nextBookingEntity.getId(),
                     nextBookingEntity.getBooker().getId()) : null;
-
-
         }
 
-        // Получение и создание списка комментариев
+        // Retrieve and create a list of comments
         List<CommentDto> comments = commentRepository.findByItem_Id(itemId).stream()
                 .map(comment -> new CommentDto(
                         comment.getId(),
@@ -163,7 +168,7 @@ public class ItemServiceImpl implements ItemService {
                         comment.getCreated()))
                 .collect(Collectors.toList());
 
-        // Создание DTO для предмета
+        // Create DTO for the item
         ItemDetailsWithBookingDatesDto itemDto = ItemMapper.toItemDetailsWithBookingDatesDto(
                 item, lastBooking, nextBooking, comments);
 

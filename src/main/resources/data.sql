@@ -3,6 +3,7 @@ DELETE FROM items;
 DELETE FROM item_requests;
 DELETE FROM comments;
 DELETE FROM users;
+DELETE FROM booking_statuses;
 
 INSERT INTO booking_statuses (status) VALUES ('ALL');
 INSERT INTO booking_statuses (status) VALUES ('APPROVED');
