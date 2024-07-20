@@ -9,10 +9,10 @@ import ru.practicum.shareit.booking.dto.BookingDto;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ItemWithBookingDatesDto {
-    private Long id;
-    private String name;
-    private String description;
-    private Boolean available;
-    private BookingDto nextBooking;
-    private BookingDto lastBooking;
+    Long id;
+    String name;
+    String description;
+    Boolean available;
+    BookingDto nextBooking;
+    BookingDto lastBooking;
 }

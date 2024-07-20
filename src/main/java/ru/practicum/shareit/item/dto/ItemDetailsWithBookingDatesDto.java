@@ -12,11 +12,11 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ItemDetailsWithBookingDatesDto {
-    private Long id;
-    private String name;
-    private String description;
-    private Boolean available;
-    private NextBooking nextBooking;
-    private LastBooking lastBooking;
-    private List<CommentDto> comments;
+    Long id;
+    String name;
+    String description;
+    Boolean available;
+    NextBooking nextBooking;
+    LastBooking lastBooking;
+    List<CommentDto> comments;
 }

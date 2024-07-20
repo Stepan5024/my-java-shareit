@@ -13,13 +13,13 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ItemDto {
-    private Long id;
-    private String name;
-    private String description;
-    private Boolean available;
-    private Long ownerId;
-    private Long requestId;
-    private NextBooking nextBooking;
-    private LastBooking lastBooking;
-    private List<CommentDto> comments;
+    Long id;
+    String name;
+    String description;
+    Boolean available;
+    Long ownerId;
+    Long requestId;
+    NextBooking nextBooking;
+    LastBooking lastBooking;
+    List<CommentDto> comments;
 }

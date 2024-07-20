@@ -8,6 +8,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class NextBooking {
-    private Long id;
-    private Long bookerId;
+    Long id;
+    Long bookerId;
 }

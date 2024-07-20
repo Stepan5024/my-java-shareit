@@ -20,26 +20,26 @@ public class Booking {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    Long id;
 
     @NotNull(message = "Start date and time cannot be null")
-    private LocalDateTime startDate;
+    LocalDateTime startDate;
 
     @NotNull(message = "End date and time cannot be null")
-    private LocalDateTime endDate;
+    LocalDateTime endDate;
 
     @NotNull(message = "Item cannot be null")
     @ManyToOne
     @JoinColumn(name = "item_id", nullable = false)
-    private Item item;
+    Item item;
 
     @NotNull(message = "Booker cannot be null")
     @ManyToOne
     @JoinColumn(name = "booker_id", nullable = false)
-    private User booker;
+    User booker;
 
     @NotNull(message = "Status cannot be null")
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private BookingStatus status;
+    BookingStatus status;
 }

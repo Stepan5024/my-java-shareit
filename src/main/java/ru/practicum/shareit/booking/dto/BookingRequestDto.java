@@ -10,8 +10,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BookingRequestDto {
-    private Long itemId;
-    private Long bookerId;
-    private LocalDateTime start;
-    private LocalDateTime end;
+    Long itemId;
+    Long bookerId;
+    LocalDateTime start;
+    LocalDateTime end;
 }
