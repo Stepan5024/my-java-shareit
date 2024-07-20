@@ -5,10 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.exception.InvalidBookingDataException;
-import ru.practicum.shareit.booking.model.Booking;
-import ru.practicum.shareit.booking.model.BookingStatus;
-import ru.practicum.shareit.booking.model.LastBooking;
-import ru.practicum.shareit.booking.model.NextBooking;
+import ru.practicum.shareit.booking.model.*;
 import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDetailsWithBookingDatesDto;
@@ -45,26 +42,11 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public ItemDto addItem(Long userId, ItemDto itemDto) {
         log.info("Attempting to add a new item for user id: {}", userId);
-        if (itemDto.getAvailable() == null) {
-            log.error("Invalid item data: Item availability status is null");
-            throw new InvalidItemDataException("Item availability status cannot be null");
-        }
-        if (itemDto.getName() == null || itemDto.getName().isBlank()) {
-            log.error("Invalid item data: Item name is empty");
-            throw new InvalidItemDataException("Item name cannot be empty");
-        }
-        if (itemDto.getDescription() == null || itemDto.getDescription().isBlank()) {
-            log.error("Invalid item data: Item description is empty");
-            throw new InvalidItemDataException("Item description cannot be empty");
-        }
+        validateItemData(itemDto);
 
-        User owner = userRepository.findById(userId).orElse(null);
-        if (owner == null) {
-            log.error("User not found with id: {}", userId);
-            throw new UserNotFoundException("User not found");
-        }
-
+        User owner = getUserById(userId);
         Item item = ItemMapper.toEntity(itemDto, owner, null);
+
         item = itemRepository.save(item);
         log.info("Successfully added item with id: {}", item.getId());
         return ItemMapper.toDto(item, null, null);
@@ -79,23 +61,15 @@ public class ItemServiceImpl implements ItemService {
             log.error("User is not the owner of the item or item not found for item id: {}", itemId);
             throw new UserNotFoundException("User is not the owner of the item or item not found");
         }
-        if (itemDto.getName() != null) {
-            item.setName(itemDto.getName());
-        }
-        if (itemDto.getDescription() != null) {
-            item.setDescription(itemDto.getDescription());
-        }
-        if (itemDto.getAvailable() != null) {
-            item.setIsAvailable(itemDto.getAvailable());
-        }
+        updateItemDetails(item, itemDto);
+
         item = itemRepository.save(item);
 
         LocalDateTime now = LocalDateTime.now();
-        Booking lastBookingEntity = getLastBooking(itemId, now);
-        Booking nextBookingEntity = getNextBooking(itemId, now);
-
-        LastBooking lastBooking = mapToLastBooking(lastBookingEntity);
-        NextBooking nextBooking = mapToNextBooking(nextBookingEntity);
+        // Получаем детали бронирований
+        BookingDetails bookingDetails = getBookingDetails(itemId, now);
+        LastBooking lastBooking = bookingDetails.lastBooking();
+        NextBooking nextBooking = bookingDetails.nextBooking();
 
         log.info("Successfully updated item with id: {}", item.getId());
         return ItemMapper.toDto(item, nextBooking, lastBooking);
@@ -110,34 +84,14 @@ public class ItemServiceImpl implements ItemService {
         LocalDateTime now = LocalDateTime.now();
         log.info("Current time: {}", now);
 
-        Booking lastBookingEntity;
-        Booking nextBookingEntity;
+        BookingDetails bookingDetails = getBookingDetails(itemId, now);
+
         LastBooking lastBooking = null;
         NextBooking nextBooking = null;
 
         if (isItemOwner(item, userId)) {
-            List<Booking> bookings = bookingRepository.findByItem_IdAndStatusOrderByEndDateDesc(itemId, BookingStatus.APPROVED);
-
-            lastBookingEntity = bookings.stream()
-                    .filter(b -> b.getEndDate().isBefore(now) || bookings.size() == 1)
-                    .findFirst()
-                    .orElse(null);
-
-            if (lastBookingEntity != null) {
-                log.info("Last booking found: id={}, endDate={}", lastBookingEntity.getId(), lastBookingEntity.getEndDate());
-            } else {
-                log.info("No last booking found");
-            }
-
-            List<Booking> futureBookings = bookingRepository.findByItem_IdAndStatusOrderByStartDateAsc(itemId, BookingStatus.APPROVED);
-            nextBookingEntity = futureBookings.stream()
-                    .filter(b -> b.getStartDate().isAfter(now))
-                    .findFirst()
-                    .orElse(null);
-
-
-            nextBooking = mapToNextBooking(nextBookingEntity);
-            lastBooking = mapToLastBooking(lastBookingEntity);
+            lastBooking = bookingDetails.lastBooking();
+            nextBooking = bookingDetails.nextBooking();
         }
 
         List<CommentDto> comments = mapCommentsToDto(commentRepository.findByItem_Id(itemId));
@@ -165,11 +119,10 @@ public class ItemServiceImpl implements ItemService {
         LocalDateTime now = LocalDateTime.now();
         log.info("Current time now: {}", now);
 
-        Booking lastBookingEntity = getLastBooking(itemId, now);
-        Booking nextBookingEntity = getNextBooking(itemId, now);
-
-        NextBooking nextBooking = mapToNextBooking(nextBookingEntity);
-        LastBooking lastBooking = mapToLastBooking(lastBookingEntity);
+        // Получаем детали бронирований
+        BookingDetails bookingDetails = getBookingDetails(itemId, now);
+        LastBooking lastBooking = bookingDetails.lastBooking();
+        NextBooking nextBooking = bookingDetails.nextBooking();
 
         List<CommentDto> comments = mapCommentsToDto(commentRepository.findByItem_Id(itemId));
 
@@ -192,18 +145,10 @@ public class ItemServiceImpl implements ItemService {
 
         return items.stream()
                 .map(item -> {
-                    // Получение будущих бронирований
-                    List<Booking> futureBookings = bookingRepository.findByItem_IdAndStartDateAfterOrderByStartDateAsc(item.getId(), now);
-                    // Получение прошлых бронирований
-                    List<Booking> pastBookings = bookingRepository.findByItem_IdAndEndDateBeforeOrderByEndDateDesc(item.getId(), now);
-
-                    // Определение ближайшего будущего бронирования (если оно есть)
-                    Booking nextBookingEntity = futureBookings.isEmpty() ? null : futureBookings.get(0);
-                    // Определение последнего прошедшего бронирования (если оно есть)
-                    Booking lastBookingEntity = pastBookings.isEmpty() ? null : pastBookings.get(0);
-
-                    LastBooking lastBooking = mapToLastBooking(lastBookingEntity);
-                    NextBooking nextBooking = mapToNextBooking(nextBookingEntity);
+                    // Получаем детали бронирований
+                    BookingDetails bookingDetails = getBookingDetails(item.getId(), now);
+                    LastBooking lastBooking = bookingDetails.lastBooking();
+                    NextBooking nextBooking = bookingDetails.nextBooking();
 
                     Long requestId = item.getRequest() != null ? item.getRequest().getId() : null;
                     Long ownerId = item.getOwner() != null ? item.getOwner().getId() : null;
@@ -248,11 +193,7 @@ public class ItemServiceImpl implements ItemService {
                     log.error("Item not found with id: {}", itemId);
                     return new ItemNotFoundException("Item not found");
                 });
-        User author = userRepository.findById(userId).orElse(null);
-        if (author == null) {
-            log.error("author not found with id: {}", userId);
-            throw new UserNotFoundException("Author not found");
-        }
+        User author = getUserById(userId);
 
         boolean hasBooked = bookingRepository.existsByItemIdAndBookerIdAndEndDateBefore(
                 itemId, userId, LocalDateTime.now());
@@ -342,4 +283,61 @@ public class ItemServiceImpl implements ItemService {
         return booking != null ? new NextBooking(booking.getId(), booking.getBooker().getId()) : null;
     }
 
+    private void validateItemData(ItemDto itemDto) {
+        if (itemDto.getAvailable() == null) {
+            log.error("Invalid item data: Item availability status is null");
+            throw new InvalidItemDataException("Item availability status cannot be null");
+        }
+        if (itemDto.getName() == null || itemDto.getName().isBlank()) {
+            log.error("Invalid item data: Item name is empty");
+            throw new InvalidItemDataException("Item name cannot be empty");
+        }
+        if (itemDto.getDescription() == null || itemDto.getDescription().isBlank()) {
+            log.error("Invalid item data: Item description is empty");
+            throw new InvalidItemDataException("Item description cannot be empty");
+        }
+    }
+
+    private void updateItemDetails(Item item, ItemDto itemDto) {
+        if (itemDto.getName() != null) {
+            item.setName(itemDto.getName());
+        }
+        if (itemDto.getDescription() != null) {
+            item.setDescription(itemDto.getDescription());
+        }
+        if (itemDto.getAvailable() != null) {
+            item.setIsAvailable(itemDto.getAvailable());
+        }
+    }
+
+    private User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> {
+                    log.error("Author not found with id: {}", userId);
+                    return new UserNotFoundException("Author not found");
+                });
+    }
+
+    private BookingDetails getBookingDetails(Long itemId, LocalDateTime now) {
+
+        List<Booking> bookings = bookingRepository.findByItem_IdAndStatusOrderByEndDateDesc(itemId, BookingStatus.APPROVED);
+
+        Booking lastBookingEntity = bookings.stream()
+                .filter(b -> b.getEndDate().isBefore(now) || bookings.size() == 1)
+                .findFirst()
+                .orElse(null);
+
+        List<Booking> futureBookings = bookingRepository.findByItem_IdAndStatusOrderByStartDateAsc(itemId, BookingStatus.APPROVED);
+        Booking nextBookingEntity = futureBookings.stream()
+                .filter(b -> b.getStartDate().isAfter(now))
+                .findFirst()
+                .orElse(null);
+
+
+        // Преобразование в LastBooking и NextBooking
+        LastBooking lastBooking = mapToLastBooking(lastBookingEntity);
+        NextBooking nextBooking = mapToNextBooking(nextBookingEntity);
+
+        return new BookingDetails(lastBooking, nextBooking);
+    }
 }
