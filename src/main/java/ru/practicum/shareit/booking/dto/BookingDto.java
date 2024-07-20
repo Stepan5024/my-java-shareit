@@ -14,22 +14,22 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BookingDto {
-    private Long id;
+    Long id;
 
     @NotNull(message = "Start date and time cannot be null")
     @FutureOrPresent(message = "Start date and time must be in the present or future")
-    private LocalDateTime start;
+    LocalDateTime start;
 
     @NotNull(message = "End date and time cannot be null")
     @FutureOrPresent(message = "End date and time must be in the present or future")
-    private LocalDateTime end;
+    LocalDateTime end;
 
     @NotNull(message = "Item ID cannot be null")
-    private Long itemId;
+    Long itemId;
 
     @NotNull(message = "Booker ID cannot be null")
-    private Long bookerId;
+    Long bookerId;
 
     @NotNull(message = "Status cannot be null")
-    private BookingStatus status;
+    BookingStatus status;
 }

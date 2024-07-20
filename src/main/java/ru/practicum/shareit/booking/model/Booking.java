@@ -1,7 +1,7 @@
 package ru.practicum.shareit.booking.model;
 
 
-import jakarta.validation.constraints.FutureOrPresent;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -11,26 +11,35 @@ import ru.practicum.shareit.user.model.User;
 
 import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "bookings")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Booking {
-    private Long id;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    Long id;
 
     @NotNull(message = "Start date and time cannot be null")
-    @FutureOrPresent(message = "Start date and time must be in the present or future")
-    private LocalDateTime start;
+    LocalDateTime startDate;
 
     @NotNull(message = "End date and time cannot be null")
-    @FutureOrPresent(message = "End date and time must be in the present or future")
-    private LocalDateTime end;
+    LocalDateTime endDate;
 
     @NotNull(message = "Item cannot be null")
-    private Item item;
+    @ManyToOne
+    @JoinColumn(name = "item_id", nullable = false)
+    Item item;
 
     @NotNull(message = "Booker cannot be null")
-    private User booker;
+    @ManyToOne
+    @JoinColumn(name = "booker_id", nullable = false)
+    User booker;
 
     @NotNull(message = "Status cannot be null")
-    private BookingStatus status;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    BookingStatus status;
 }
