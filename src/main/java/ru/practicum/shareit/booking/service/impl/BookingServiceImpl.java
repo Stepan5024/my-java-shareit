@@ -105,7 +105,7 @@ public class BookingServiceImpl implements BookingService {
     public List<BookingResponseDto> getBookings(Long userId, String state) {
         log.info("Retrieving bookings for user id: {} with state: {}", userId, state);
 
-        BookingStatus bookingState = parseBookingStatus(state);
+        BookingStatus bookingState = getBookingStatus(state);
         log.debug("getBookings Booking state: {}", bookingState);
 
         LocalDateTime now = LocalDateTime.now();
@@ -279,15 +279,6 @@ public class BookingServiceImpl implements BookingService {
                     log.error("Booking not found with id: {}", bookingId);
                     return new BookingNotFoundException("Booking not found");
                 });
-    }
-
-    private BookingStatus parseBookingStatus(String state) {
-        try {
-            return BookingStatus.valueOf(state.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            log.error("Unknown booking state: {}", state);
-            throw new InvalidBookingStatusException("Unknown state: " + state);
-        }
     }
 
 }
