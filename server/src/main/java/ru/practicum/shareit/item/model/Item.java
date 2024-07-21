@@ -21,13 +21,13 @@ public class Item {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @Column(nullable = false)
+    @Column(name = "name", nullable = false)
     String name;
 
-    @Column(nullable = false)
+    @Column(name = "description", nullable = false)
     String description;
 
-    @Column(nullable = false)
+    @Column(name = "isAvailable", nullable = false)
     Boolean isAvailable;
 
     @ManyToOne

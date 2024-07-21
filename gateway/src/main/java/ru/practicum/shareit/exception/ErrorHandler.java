@@ -1,4 +1,4 @@
-package ru.practicum.shareit.error;
+package ru.practicum.shareit.exception;
 
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
-import ru.practicum.shareit.error.model.ErrorResponse;
+import ru.practicum.shareit.exception.model.ErrorResponse;
 
 import java.util.HashMap;
 import java.util.Map;
