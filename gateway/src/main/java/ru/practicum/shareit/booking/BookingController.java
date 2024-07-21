@@ -33,9 +33,10 @@ public class BookingController {
                                               @RequestParam(name = "from", defaultValue = "0") Integer from,
                                               @Positive(message = SIZE_ERROR_MESSAGE)
                                               @RequestParam(name = "size", defaultValue = "10") Integer size) {
+        log.info("Get booking with userId={}, from={}, size={}", userId, from, size);
         BookingState state = BookingState.from(stateParam)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown state: " + stateParam));
-        log.info("Get booking with state {}, userId={}, from={}, size={}", stateParam, userId, from, size);
+        log.info("Get booking with state {}", stateParam);
         return bookingClient.getBookings(userId, state, from, size);
     }
 

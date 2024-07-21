@@ -153,12 +153,14 @@ public class ItemServiceImpl implements ItemService {
 
         LocalDateTime now = LocalDateTime.now();
 
-        return items.stream()
+        List<ItemDto> itemDtos = items.stream()
                 .map(item -> {
                     // Получаем детали бронирований
                     BookingDetails bookingDetails = getBookingDetails(item.getId(), now);
                     LastBooking lastBooking = bookingDetails.lastBooking();
                     NextBooking nextBooking = bookingDetails.nextBooking();
+
+                    log.info("Item ID: {}, LastBooking: {}, NextBooking: {}", item.getId(), lastBooking, nextBooking);
 
                     Long requestId = item.getRequest() != null ? item.getRequest().getId() : null;
                     Long ownerId = item.getOwner() != null ? item.getOwner().getId() : null;
@@ -178,6 +180,9 @@ public class ItemServiceImpl implements ItemService {
                     );
                 })
                 .collect(Collectors.toList());
+        log.info("Generated ItemDtos: {}", itemDtos);
+
+        return itemDtos;
     }
 
     @Override
@@ -316,18 +321,19 @@ public class ItemServiceImpl implements ItemService {
     private BookingDetails getBookingDetails(Long itemId, LocalDateTime now) {
 
         List<Booking> bookings = bookingRepository.findByItem_IdAndStatusOrderByEndDateDesc(itemId, Status.APPROVED);
-
+        log.info("Bookings: {}", bookings);
         Booking lastBookingEntity = bookings.stream()
                 .filter(b -> b.getEndDate().isBefore(now) || bookings.size() == 1)
                 .findFirst()
                 .orElse(null);
-
+        log.info("Last Booking Entity: {}", lastBookingEntity);
         List<Booking> futureBookings = bookingRepository.findByItem_IdAndStatusOrderByStartDateAsc(itemId, Status.APPROVED);
+        log.info("Future Bookings: {}", futureBookings);
         Booking nextBookingEntity = futureBookings.stream()
                 .filter(b -> b.getStartDate().isAfter(now))
                 .findFirst()
                 .orElse(null);
-
+        log.info("Next Booking Entity: {}", nextBookingEntity);
 
         // Преобразование в LastBooking и NextBooking
         LastBooking lastBooking = mapToLastBooking(lastBookingEntity);

@@ -7,7 +7,6 @@ import org.springframework.data.repository.query.Param;
 import ru.practicum.shareit.booking.enums.Status;
 import ru.practicum.shareit.booking.model.Booking;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -20,8 +19,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             "OR b.startDate <= :start AND b.endDate >= :end)")
     List<Booking> findBookingsAtSameTime(@Param(value = "itemId") long itemId,
                                          @Param(value = "status") Status status,
-                                         @Param(value = "start") Instant start,
-                                         @Param(value = "end") Instant end);
+                                         @Param(value = "start") LocalDateTime start,
+                                         @Param(value = "end") LocalDateTime end);
 
     List<Booking> findByItem_IdInAndStartDateIsBeforeAndEndDateIsAfter(List<Long> itemIds, LocalDateTime start, LocalDateTime end, Sort sort);
 

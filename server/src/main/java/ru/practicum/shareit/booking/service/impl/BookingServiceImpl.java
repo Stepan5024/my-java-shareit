@@ -25,7 +25,6 @@ import ru.practicum.shareit.user.dto.mapper.UserMapper;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -58,8 +57,8 @@ public class BookingServiceImpl implements BookingService {
         assert booking != null;
         booking.setStatus(WAITING);
 
-        Instant start = Instant.from(booking.getStartDate());
-        Instant end = Instant.from(booking.getEndDate());
+        LocalDateTime start = booking.getStartDate();
+        LocalDateTime end = booking.getEndDate();
         List<Booking> bookingsAtSameTime = bookingRepository.findBookingsAtSameTime(itemId, Status.APPROVED, start, end);
         if (!bookingsAtSameTime.isEmpty()) {
             log.warn("Время для аренды недоступно");
@@ -123,7 +122,6 @@ public class BookingServiceImpl implements BookingService {
         State bookingState = State.from(state);
         Status bookingStatus = convertStateToStatus(bookingState);
 
-        //Status bookingState = getBookingStatus(state);
         log.debug("getBookings Booking state: {}, Booking status: {}", bookingState, bookingStatus);
 
 

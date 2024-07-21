@@ -1,26 +1,25 @@
 package ru.practicum.shareit.client;
 
-import java.util.List;
-import java.util.Map;
-
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.*;
 import org.springframework.lang.Nullable;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.List;
+import java.util.Map;
+
+@Slf4j
+@AllArgsConstructor
 public class BaseClient {
     protected final RestTemplate rest;
 
-    public BaseClient(RestTemplate rest) {
-        this.rest = rest;
-    }
-
     protected ResponseEntity<Object> get(String path) {
-        return get(path, null, null);
+        log.info("GET request with path: {}", path);
+        ResponseEntity<Object> response = get(path, null, null);
+        log.info("GET response: {}", response);
+        return response;
     }
 
     protected ResponseEntity<Object> get(String path, long userId) {
@@ -28,7 +27,10 @@ public class BaseClient {
     }
 
     protected ResponseEntity<Object> get(String path, Long userId, @Nullable Map<String, Object> parameters) {
-        return makeAndSendRequest(HttpMethod.GET, path, userId, parameters, null);
+        log.info("GET request with path: {}, userId: {}, parameters: {}", path, userId, parameters);
+        ResponseEntity<Object> response = makeAndSendRequest(HttpMethod.GET, path, userId, parameters, null);
+        log.info("GET response: {}", response);
+        return response;
     }
 
     protected <T> ResponseEntity<Object> post(String path, T body) {
@@ -80,6 +82,8 @@ public class BaseClient {
     }
 
     private <T> ResponseEntity<Object> makeAndSendRequest(HttpMethod method, String path, Long userId, @Nullable Map<String, Object> parameters, @Nullable T body) {
+        log.info("Making request with method: {}, path: {}, userId: {}, parameters: {}, body: {}", method, path, userId, parameters, body);
+
         HttpEntity<T> requestEntity = new HttpEntity<>(body, defaultHeaders(userId));
 
         ResponseEntity<Object> shareitServerResponse;
@@ -113,6 +117,7 @@ public class BaseClient {
         ResponseEntity.BodyBuilder responseBuilder = ResponseEntity.status(response.getStatusCode());
 
         if (response.hasBody()) {
+            log.info("Response: {}", response);
             return responseBuilder.body(response.getBody());
         }
 
