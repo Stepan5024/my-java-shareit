@@ -185,4 +185,33 @@ class UserControllerTest {
         verify(userService, times(1)).getAllUsers();
         verifyNoMoreInteractions(userService);
     }
+
+    @Test
+    void deleteUser_ShouldDeleteUser() {
+        Long userId = 1L;
+
+        doNothing().when(userService).deleteUser(userId);
+
+        userController.deleteUser(userId);
+
+        verify(userService, times(1)).deleteUser(userId);
+        verifyNoMoreInteractions(userService);
+    }
+
+    @Test
+    void deleteUser_ShouldThrowException_WhenUserNotFound() {
+        Long userId = 1L;
+
+        doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"))
+                .when(userService).deleteUser(userId);
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            userController.deleteUser(userId);
+        });
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertEquals("User not found", exception.getReason());
+        verify(userService, times(1)).deleteUser(userId);
+        verifyNoMoreInteractions(userService);
+    }
 }
