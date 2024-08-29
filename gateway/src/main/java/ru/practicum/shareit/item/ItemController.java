@@ -24,7 +24,7 @@ public class ItemController {
     private static final String SIZE_ERROR_MESSAGE = "Количество элементов для отображения должно быть положительным";
     private static final String USER_HEADER = "X-Sharer-User-Id";
     private static final String ITEM_ID_PATH = "/{item-id}";
-    
+
     private final ItemClient itemClient;
 
     @GetMapping
