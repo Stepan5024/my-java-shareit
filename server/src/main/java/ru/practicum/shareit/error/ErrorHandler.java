@@ -9,10 +9,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.NoHandlerFoundException;
-import ru.practicum.shareit.error.exception.EmailExistException;
-import ru.practicum.shareit.error.exception.NotFoundException;
-import ru.practicum.shareit.error.exception.OwnerBookingException;
-import ru.practicum.shareit.error.exception.ValidationException;
+import ru.practicum.shareit.error.exception.*;
 import ru.practicum.shareit.error.model.ErrorResponse;
 
 @RestControllerAdvice
@@ -24,6 +21,13 @@ public class ErrorHandler {
     @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleNotFoundException(final NotFoundException e) {
+        log.error(e.getMessage(), e);
+        return new ErrorResponse(e.getMessage());
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ErrorResponse handleUserNotOwnerException(final UserNotOwnerException e) {
         log.error(e.getMessage(), e);
         return new ErrorResponse(e.getMessage());
     }

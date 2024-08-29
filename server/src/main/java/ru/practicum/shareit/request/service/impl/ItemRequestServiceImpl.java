@@ -34,7 +34,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     private final ItemRepository itemRepository;
 
     @Override
-    public ItemRequestNewDto  addRequest(Long userId, ItemRequestNewDto itemRequestNewDto) {
+    public ItemRequestNewDto addRequest(Long userId, ItemRequestNewDto itemRequestNewDto) {
         ItemRequest itemRequest = ItemRequestMapper.toItemRequest(itemRequestNewDto);
 
 

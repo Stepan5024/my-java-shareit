@@ -39,6 +39,7 @@ public class ItemRequestMapper {
     public static ItemRequest toItemRequest(ItemRequestNewDto itemRequestNewDto) {
         ItemRequest itemRequest = new ItemRequest();
         itemRequest.setDescription(itemRequestNewDto.getDescription());
+        itemRequest.setCreated(itemRequestNewDto.getCreated());
         return itemRequest;
     }
 }

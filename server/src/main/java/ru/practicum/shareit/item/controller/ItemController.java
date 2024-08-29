@@ -26,7 +26,8 @@ public class ItemController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ItemDto addItem(@RequestHeader(USER_HEADER) Long userId, @Valid @RequestBody ItemDto itemDto) {
+    public ItemDto addItem(@RequestHeader(USER_HEADER) Long userId,
+                           @Valid @RequestBody ItemDto itemDto) {
         log.info("Received request to add item for user id: {}", userId);
         return itemService.addItem(userId, itemDto);
     }

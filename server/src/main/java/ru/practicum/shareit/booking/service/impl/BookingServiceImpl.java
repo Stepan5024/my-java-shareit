@@ -17,6 +17,7 @@ import ru.practicum.shareit.booking.model.NextBooking;
 import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.booking.service.BookingService;
 import ru.practicum.shareit.error.exception.NotFoundException;
+import ru.practicum.shareit.error.exception.UserNotOwnerException;
 import ru.practicum.shareit.error.exception.ValidationException;
 import ru.practicum.shareit.item.dto.mapper.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
@@ -80,7 +81,6 @@ public class BookingServiceImpl implements BookingService {
 
         // Проверяем, является ли текущий пользователь владельцем предмета
         validateUserOwnership(booking, userId);
-
 
         // Проверить, не одобрено ли бронирование уже
         if (booking.getStatus() == APPROVED && approved) {
@@ -243,19 +243,10 @@ public class BookingServiceImpl implements BookingService {
     private void validateUserOwnership(Booking booking, Long userId) {
         if (!booking.getItem().getOwner().getId().equals(userId)) {
             log.error("User with id {} does not have access to booking with id {}", userId, booking.getId());
-            throw new NotFoundException(
+            throw new UserNotOwnerException(
                     String.format("Пользователь с id %d не владеет вещью с id %d", userId, booking.getItem().getId()));
         }
     }
-
-    /*private Status getBookingStatus(String state) {
-        try {
-            return Status.valueOf(state.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            log.error("Unknown booking state: {}", state);
-            throw new UnsupportedStatusException("Unknown state: UNSUPPORTED_STATUS");
-        }
-    }*/
 
     private User findUserById(Long userId) {
         return userRepository.findById(userId)

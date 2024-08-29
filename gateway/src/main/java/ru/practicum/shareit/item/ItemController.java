@@ -38,6 +38,7 @@ public class ItemController {
     @GetMapping("{itemId}")
     public ResponseEntity<Object> findById(@RequestHeader(USER_HEADER) long userId,
                                            @PathVariable Long itemId) {
+        log.info("Fetching item with itemId={} for userId={}", itemId, userId);
         return itemClient.findItemById(userId, itemId);
     }
 
@@ -47,6 +48,7 @@ public class ItemController {
             @RequestParam String text,
             @RequestParam(defaultValue = "0") @PositiveOrZero(message = FROM_ERROR_MESSAGE) Integer from,
             @RequestParam(defaultValue = "10") @Positive(message = SIZE_ERROR_MESSAGE) Integer size) {
+        log.info("Searching for items with text='{}' for userId={}, from={}, size={}", text, userId, from, size);
         return itemClient.findItemByText(userId, text, from, size);
     }
 
@@ -54,6 +56,7 @@ public class ItemController {
     @Validated(ValidationGroups.Create.class)
     public ResponseEntity<Object> add(@RequestHeader(USER_HEADER) Long userId,
                                       @Valid @RequestBody ItemDto itemDto) {
+        log.info("Adding a new item for userId={}, item={}", userId, itemDto);
         return itemClient.addItem(userId, itemDto);
     }
 
@@ -62,6 +65,7 @@ public class ItemController {
     public ResponseEntity<Object> patch(@RequestHeader(USER_HEADER) Long userId,
                                         @Valid @RequestBody ItemDto itemDto,
                                         @PathVariable("itemId") Long itemId) {
+        log.info("Updating item with itemId={} for userId={}, new values={}", itemId, userId, itemDto);
         if (itemDto.getName() != null) {
             Validation.checkNotBlank(itemDto.getName(), "Название");
         }
@@ -74,14 +78,15 @@ public class ItemController {
     @DeleteMapping("/{itemId}")
     public ResponseEntity<Object> deleteItem(@RequestHeader(USER_HEADER) long userId,
                                              @PathVariable Long itemId) {
+        log.info("Deleting item with itemId={} for userId={}", itemId, userId);
         return itemClient.deleteItem(userId, itemId);
     }
 
     @PostMapping("/{itemId}/comment")
     public ResponseEntity<Object> addComment(@RequestHeader(USER_HEADER) Long userId,
                                              @Valid @RequestBody CommentDto commentDto,
-                                             @PathVariable("itemId") Long itemId
-    ) {
+                                             @PathVariable("itemId") Long itemId) {
+        log.info("Adding a comment for itemId={} by userId={}, comment={}", itemId, userId, commentDto);
         return itemClient.addComment(userId, itemId, commentDto);
     }
 }
