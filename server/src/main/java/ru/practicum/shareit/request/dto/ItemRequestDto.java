@@ -18,6 +18,7 @@ public class ItemRequestDto {
     private LocalDateTime created;
     private final List<ItemDto> items = new ArrayList<>();
     private Long requestorId;
+
     public void addAllItems(List<ItemDto> itemsToAdd) {
         items.addAll(itemsToAdd);
     }
