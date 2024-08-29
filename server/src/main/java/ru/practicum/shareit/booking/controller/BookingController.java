@@ -19,11 +19,11 @@ public class BookingController {
     private static final String USER_HEADER = "X-Sharer-User-Id";
 
     @PostMapping
-    public ResponseEntity<BookingOutDto> addBooking(@RequestBody BookingInDto BookingInDto,
+    public ResponseEntity<BookingOutDto> addBooking(@RequestBody BookingInDto bookingInDto,
                                                     @RequestHeader(USER_HEADER) Long bookerId) {
-        log.info("Received add booking request: {} from booker: {}", BookingInDto, bookerId);
-        BookingInDto.setBookerId(bookerId);
-        BookingOutDto bookingOutDto = bookingService.addBooking(BookingInDto);
+        log.info("Received add booking request: {} from booker: {}", bookingInDto, bookerId);
+        bookingInDto.setBookerId(bookerId);
+        BookingOutDto bookingOutDto = bookingService.addBooking(bookingInDto);
         log.info("Booking created: {}", bookingOutDto);
         return ResponseEntity.ok(bookingOutDto);
     }
