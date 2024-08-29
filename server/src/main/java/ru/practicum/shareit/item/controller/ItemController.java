@@ -23,6 +23,7 @@ import java.util.List;
 public class ItemController {
     private final ItemService itemService;
     private static final String USER_HEADER = "X-Sharer-User-Id";
+    private static final String ITEM_ID_PATH = "/{item-id}";
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -32,16 +33,18 @@ public class ItemController {
         return itemService.addItem(userId, itemDto);
     }
 
-    @PatchMapping("/{itemId}")
+    @PatchMapping(ITEM_ID_PATH)
     public ItemDto updateItem(@RequestHeader(USER_HEADER) Long userId,
-                              @PathVariable Long itemId,
+                              @PathVariable("item-id") Long itemId,
                               @RequestBody ItemDto itemDto) {
         log.info("Received request to update item id: {} for user id: {}", itemId, userId);
         return itemService.updateItem(userId, itemId, itemDto);
     }
 
-    @GetMapping("/{itemId}")
-    public ItemDetailsWithBookingDatesDto getItem(@PathVariable Long itemId, @RequestHeader(USER_HEADER) Long userId) {
+    @GetMapping(ITEM_ID_PATH)
+    public ItemDetailsWithBookingDatesDto getItem(
+            @PathVariable("item-id") Long itemId,
+            @RequestHeader(USER_HEADER) Long userId) {
         log.info("Received request to get item id: {}", itemId);
         return itemService.getItem(itemId, userId);
     }
@@ -52,9 +55,8 @@ public class ItemController {
         return itemService.getItemsByOwner(userId);
     }
 
-
-    @GetMapping("/{itemId}/details")
-    public ItemDetailsWithBookingDatesDto getItemDetailsWithBookings(@PathVariable Long itemId) {
+    @GetMapping(ITEM_ID_PATH + "/details")
+    public ItemDetailsWithBookingDatesDto getItemDetailsWithBookings(@PathVariable("item-id") Long itemId) {
         log.info("Received request to get item details with bookings for itemId: {}", itemId);
         return itemService.getItemDetailsWithBookings(itemId);
     }
@@ -65,8 +67,8 @@ public class ItemController {
         return itemService.searchItems(text);
     }
 
-    @PostMapping("/{itemId}/comment")
-    public ResponseEntity<CommentDto> addComment(@PathVariable Long itemId,
+    @PostMapping(ITEM_ID_PATH + "/comment")
+    public ResponseEntity<CommentDto> addComment(@PathVariable("item-id") Long itemId,
                                                  @RequestHeader("X-Sharer-User-Id") Long userId,
                                                  @RequestBody CommentDto commentDto) {
         log.info("Received request to add comment for itemId: {} by userId: {}", itemId, userId);
@@ -76,8 +78,8 @@ public class ItemController {
         return ResponseEntity.ok(createdComment);
     }
 
-    @GetMapping("/{itemId}/comments")
-    public ResponseEntity<List<CommentDto>> getCommentsByItemId(@PathVariable Long itemId,
+    @GetMapping(ITEM_ID_PATH + "/comments")
+    public ResponseEntity<List<CommentDto>> getCommentsByItemId(@PathVariable("item-id") Long itemId,
                                                                 @RequestHeader("X-Sharer-User-Id") Long userId) {
         log.info("Received request to get comments for itemId: {}", itemId);
         List<CommentDto> comments = itemService.getCommentsByItemId(itemId, userId);

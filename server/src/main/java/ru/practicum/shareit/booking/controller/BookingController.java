@@ -17,7 +17,8 @@ import java.util.List;
 public class BookingController {
     private final BookingService bookingService;
     private static final String USER_HEADER = "X-Sharer-User-Id";
-
+    private static final String BOOKING_ID_PATH = "/{booking-id}";
+    
     @PostMapping
     public ResponseEntity<BookingOutDto> addBooking(@RequestBody BookingInDto bookingInDto,
                                                     @RequestHeader(USER_HEADER) Long bookerId) {
@@ -28,8 +29,8 @@ public class BookingController {
         return ResponseEntity.ok(bookingOutDto);
     }
 
-    @PatchMapping("/{bookingId}")
-    public ResponseEntity<BookingOutDto> updateBookingStatus(@PathVariable Long bookingId,
+    @PatchMapping(BOOKING_ID_PATH)
+    public ResponseEntity<BookingOutDto> updateBookingStatus(@PathVariable("booking-id") Long bookingId,
                                                              @RequestParam Boolean approved,
                                                              @RequestHeader(USER_HEADER) Long userId) {
         log.info("Received update booking status request for bookingId: {} by user: {} with status: {}", bookingId, userId, approved);
@@ -38,8 +39,8 @@ public class BookingController {
         return ResponseEntity.ok(bookingOutDto);
     }
 
-    @GetMapping("/{bookingId}")
-    public ResponseEntity<BookingOutDto> getBooking(@PathVariable Long bookingId,
+    @GetMapping(BOOKING_ID_PATH)
+    public ResponseEntity<BookingOutDto> getBooking(@PathVariable("booking-id") Long bookingId,
                                                     @RequestHeader(USER_HEADER) Long userId) {
         log.info("Received get booking request for bookingId: {} by user: {}", bookingId, userId);
         BookingOutDto bookingOutDto = bookingService.getBooking(userId, bookingId);

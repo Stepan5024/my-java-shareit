@@ -21,6 +21,7 @@ public class ItemRequestController {
     private static final String FROM_ERROR_MESSAGE = "Индекс первого элемента не может быть отрицательным";
     private static final String SIZE_ERROR_MESSAGE = "Количество элементов для отображения должно быть положительным";
     private static final String USER_HEADER = "X-Sharer-User-Id";
+    private static final String REQUEST_ID_PATH = "/{request-id}";
 
     private final ItemRequestClient requestClient;
 
@@ -48,10 +49,10 @@ public class ItemRequestController {
         return requestClient.findAllRequests(userId, from, size);
     }
 
-    @GetMapping("/{requestId}")
+    @GetMapping(REQUEST_ID_PATH)
     public ResponseEntity<Object> findById(
             @RequestHeader(USER_HEADER) long userId,
-            @PathVariable long requestId) {
+            @PathVariable("request-id") long requestId) {
         log.info("Fetching item request with requestId={} for userId={}", requestId, userId);
         return requestClient.findRequestById(userId, requestId);
     }

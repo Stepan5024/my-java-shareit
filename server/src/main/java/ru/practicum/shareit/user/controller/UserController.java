@@ -16,6 +16,8 @@ import java.util.List;
 @RequiredArgsConstructor
 @RequestMapping("/users")
 public class UserController {
+    private static final String USER_ID_PATH = "/{user-id}";
+    
     private final UserService userService;
 
     @PostMapping
@@ -25,14 +27,16 @@ public class UserController {
         return userService.addUser(userDto);
     }
 
-    @PatchMapping("/{userId}")
-    public UserDto updateUser(@PathVariable Long userId, @Valid @RequestBody UserDto userDto) {
+    @PatchMapping(USER_ID_PATH)
+    public UserDto updateUser(
+            @PathVariable("user-id") Long userId,
+            @Valid @RequestBody UserDto userDto) {
         log.info("Received request to update user with id: {}", userId);
         return userService.updateUser(userId, userDto);
     }
 
-    @GetMapping("/{userId}")
-    public UserDto getUser(@PathVariable Long userId) {
+    @GetMapping(USER_ID_PATH)
+    public UserDto getUser(@PathVariable("user-id") Long userId) {
         log.info("Received request to get user with id: {}", userId);
         return userService.getUser(userId);
     }
@@ -43,9 +47,9 @@ public class UserController {
         return userService.getAllUsers();
     }
 
-    @DeleteMapping("/{userId}")
+    @DeleteMapping(USER_ID_PATH)
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteUser(@PathVariable Long userId) {
+    public void deleteUser(@PathVariable("user-id") Long userId) {
         log.info("Received request to delete user with id: {}", userId);
         userService.deleteUser(userId);
     }

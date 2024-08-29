@@ -23,6 +23,7 @@ public class BookingController {
     private static final String FROM_ERROR_MESSAGE = "Индекс первого элемента не может быть отрицательным";
     private static final String SIZE_ERROR_MESSAGE = "Количество элементов для отображения должно быть положительным";
     private static final String USER_HEADER = "X-Sharer-User-Id";
+    private static final String BOOKING_ID_PATH = "/{booking-id}";
 
     private final BookingClient bookingClient;
 
@@ -65,17 +66,17 @@ public class BookingController {
         return bookingClient.bookItem(userId, requestDto);
     }
 
-    @PatchMapping("/{bookingId}")
+    @PatchMapping(BOOKING_ID_PATH)
     public ResponseEntity<Object> patch(@RequestHeader(USER_HEADER) Long userId,
-                                        @PathVariable("bookingId") Long bookingId,
+                                        @PathVariable("booking-id") Long bookingId,
                                         @RequestParam Boolean approved) {
         log.info("Patching booking {}, userId={}, approved={}", bookingId, userId, approved);
         return bookingClient.patchBooking(userId, bookingId, approved);
     }
 
-    @GetMapping("/{bookingId}")
+    @GetMapping(BOOKING_ID_PATH)
     public ResponseEntity<Object> getBooking(@RequestHeader(USER_HEADER) long userId,
-                                             @PathVariable Long bookingId) {
+                                             @PathVariable("booking-id") Long bookingId) {
         log.info("Get booking {}, userId={}", bookingId, userId);
         return bookingClient.getBooking(userId, bookingId);
     }

@@ -23,7 +23,8 @@ public class ItemController {
     private static final String FROM_ERROR_MESSAGE = "Индекс первого элемента не может быть отрицательным";
     private static final String SIZE_ERROR_MESSAGE = "Количество элементов для отображения должно быть положительным";
     private static final String USER_HEADER = "X-Sharer-User-Id";
-
+    private static final String ITEM_ID_PATH = "/{item-id}";
+    
     private final ItemClient itemClient;
 
     @GetMapping
@@ -35,9 +36,9 @@ public class ItemController {
         return itemClient.getItems(userId, from, size);
     }
 
-    @GetMapping("{itemId}")
+    @GetMapping(ITEM_ID_PATH)
     public ResponseEntity<Object> findById(@RequestHeader(USER_HEADER) long userId,
-                                           @PathVariable Long itemId) {
+                                           @PathVariable("item-id") Long itemId) {
         log.info("Fetching item with itemId={} for userId={}", itemId, userId);
         return itemClient.findItemById(userId, itemId);
     }
@@ -60,11 +61,11 @@ public class ItemController {
         return itemClient.addItem(userId, itemDto);
     }
 
-    @PatchMapping("/{itemId}")
+    @PatchMapping(ITEM_ID_PATH)
     @Validated(ValidationGroups.Update.class)
     public ResponseEntity<Object> patch(@RequestHeader(USER_HEADER) Long userId,
                                         @Valid @RequestBody ItemDto itemDto,
-                                        @PathVariable("itemId") Long itemId) {
+                                        @PathVariable("item-id") Long itemId) {
         log.info("Updating item with itemId={} for userId={}, new values={}", itemId, userId, itemDto);
         if (itemDto.getName() != null) {
             Validation.checkNotBlank(itemDto.getName(), "Название");
@@ -75,17 +76,17 @@ public class ItemController {
         return itemClient.patchItem(userId, itemId, itemDto);
     }
 
-    @DeleteMapping("/{itemId}")
+    @DeleteMapping(ITEM_ID_PATH)
     public ResponseEntity<Object> deleteItem(@RequestHeader(USER_HEADER) long userId,
-                                             @PathVariable Long itemId) {
+                                             @PathVariable("item-id") Long itemId) {
         log.info("Deleting item with itemId={} for userId={}", itemId, userId);
         return itemClient.deleteItem(userId, itemId);
     }
 
-    @PostMapping("/{itemId}/comment")
+    @PostMapping(ITEM_ID_PATH + "/comment")
     public ResponseEntity<Object> addComment(@RequestHeader(USER_HEADER) Long userId,
                                              @Valid @RequestBody CommentDto commentDto,
-                                             @PathVariable("itemId") Long itemId) {
+                                             @PathVariable("item-id") Long itemId) {
         log.info("Adding a comment for itemId={} by userId={}, comment={}", itemId, userId, commentDto);
         return itemClient.addComment(userId, itemId, commentDto);
     }

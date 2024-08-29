@@ -17,6 +17,8 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class ItemRequestController {
+    private static final String REQUEST_ID_PATH = "/{request-id}";
+
     private final ItemRequestService service;
 
     @PostMapping
@@ -43,10 +45,10 @@ public class ItemRequestController {
         return service.findAll(userId, from, size);
     }
 
-    @GetMapping("/{requestId}")
+    @GetMapping(REQUEST_ID_PATH)
     public ItemRequestDto findById(
             @RequestHeader("X-Sharer-User-Id") long userId,
-            @PathVariable long requestId) {
+            @PathVariable("request-id") long requestId) {
         return service.findById(userId, requestId);
     }
 }
