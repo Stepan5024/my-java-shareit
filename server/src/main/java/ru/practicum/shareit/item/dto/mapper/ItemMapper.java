@@ -18,6 +18,7 @@ public class ItemMapper {
     public static ItemDto toDto(Item item, NextBooking nextBooking, LastBooking lastBooking) {
         return toDto(item, nextBooking, lastBooking, Collections.emptyList());
     }
+
     public static ItemDto toItemDto(Item item) {
         return ItemDto.builder()
                 .id(item.getId())
