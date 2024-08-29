@@ -10,9 +10,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class UserDto {
-     Long id;
+    Long id;
 
-     String name;
-    
-     String email;
+    String name;
+
+    String email;
 }
