@@ -39,6 +39,7 @@ public class ItemRequestController {
             @RequestHeader("X-Sharer-User-Id") long userId,
             @RequestParam int from,
             @RequestParam int size) {
+        log.info("Fetching all item requests for userId={}, from={}, size={}", userId, from, size);
         return service.findAll(userId, from, size);
     }
 
