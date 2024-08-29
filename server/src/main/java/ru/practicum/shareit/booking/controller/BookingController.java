@@ -30,8 +30,8 @@ public class BookingController {
 
     @PatchMapping("/{bookingId}")
     public ResponseEntity<BookingOutDto> updateBookingStatus(@PathVariable Long bookingId,
-                                                                  @RequestParam Boolean approved,
-                                                                  @RequestHeader(USER_HEADER) Long userId) {
+                                                             @RequestParam Boolean approved,
+                                                             @RequestHeader(USER_HEADER) Long userId) {
         log.info("Received update booking status request for bookingId: {} by user: {} with status: {}", bookingId, userId, approved);
         BookingOutDto bookingOutDto = bookingService.updateBookingStatus(bookingId, userId, approved);
         log.info("Booking status updated: {}", bookingOutDto);
@@ -40,7 +40,7 @@ public class BookingController {
 
     @GetMapping("/{bookingId}")
     public ResponseEntity<BookingOutDto> getBooking(@PathVariable Long bookingId,
-                                                         @RequestHeader(USER_HEADER) Long userId) {
+                                                    @RequestHeader(USER_HEADER) Long userId) {
         log.info("Received get booking request for bookingId: {} by user: {}", bookingId, userId);
         BookingOutDto bookingOutDto = bookingService.getBooking(userId, bookingId);
         log.info("Retrieved booking: {}", bookingOutDto);
