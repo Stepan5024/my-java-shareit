@@ -18,7 +18,7 @@ public class BookingController {
     private final BookingService bookingService;
     private static final String USER_HEADER = "X-Sharer-User-Id";
     private static final String BOOKING_ID_PATH = "/{booking-id}";
-    
+
     @PostMapping
     public ResponseEntity<BookingOutDto> addBooking(@RequestBody BookingInDto bookingInDto,
                                                     @RequestHeader(USER_HEADER) Long bookerId) {
